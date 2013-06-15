@@ -3,6 +3,6 @@ if [ ! -e ./configure ];then
     autoreconf -i
 fi
 
-./configure --without-gnutls --with-openssl
+./configure --without-gnutls --with-openssl --disable-libaria2
 make
 
