@@ -262,7 +262,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
                        // configure.
                        A2_V_TRUE,
 #else // !defined(__MINGW32__) || defined(__MINGW64__)
-                       A2_V_FALSE,
+                       A2_V_TRUE,	// disable the ipv6 -wsw
 #endif // !defined(__MINGW32__) || defined(__MINGW64__)
                        OptionHandler::OPT_ARG));
     op->addTag(TAG_ADVANCED);
@@ -322,7 +322,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
     OptionHandler* op(new BooleanOptionHandler
                       (PREF_ENABLE_RPC,
                        TEXT_ENABLE_RPC,
-                       A2_V_FALSE,
+                       A2_V_TRUE,
                        OptionHandler::OPT_ARG));
     op->addTag(TAG_RPC);
     handlers.push_back(op);
