@@ -1,6 +1,6 @@
 SUBDIRS = includes
-bin_PROGRAMS = aria2c
-aria2c_SOURCES = main.cc
+bin_PROGRAMS = mtxd
+mtxd_SOURCES = main.cc
 SRCS =  option_processing.cc\
 	version_usage.cc\
 	Context.cc Context.h\
