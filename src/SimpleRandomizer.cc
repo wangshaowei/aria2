@@ -34,22 +34,23 @@
 /* copyright --> */
 #include "SimpleRandomizer.h"
 
-#include <cstdlib>
 #include <sys/types.h>
 #include <unistd.h>
+#include <cstdlib>
+#include <cassert>
 
 #include "a2time.h"
 
 namespace aria2 {
 
-SharedHandle<SimpleRandomizer> SimpleRandomizer::randomizer_;
+std::unique_ptr<SimpleRandomizer> SimpleRandomizer::randomizer_;
 
-const SharedHandle<SimpleRandomizer>& SimpleRandomizer::getInstance()
+SimpleRandomizer* SimpleRandomizer::getInstance()
 {
   if(!randomizer_) {
     randomizer_.reset(new SimpleRandomizer());
   }
-  return randomizer_;
+  return randomizer_.get();
 }
 
 void SimpleRandomizer::init()

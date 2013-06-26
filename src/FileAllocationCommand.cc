@@ -54,7 +54,7 @@ namespace aria2 {
 
 FileAllocationCommand::FileAllocationCommand
 (cuid_t cuid, RequestGroup* requestGroup, DownloadEngine* e,
- const SharedHandle<FileAllocationEntry>& fileAllocationEntry):
+ const std::shared_ptr<FileAllocationEntry>& fileAllocationEntry):
   RealtimeCommand(cuid, requestGroup, e),
   fileAllocationEntry_(fileAllocationEntry) {}
 
@@ -74,15 +74,13 @@ bool FileAllocationCommand::executeInternal()
            getRequestGroup()->getTotalLength()));
     getDownloadEngine()->getFileAllocationMan()->dropPickedEntry();
 
-    std::vector<Command*>* commands = new std::vector<Command*>();
-    auto_delete_container<std::vector<Command*> > commandsDel(commands);
-    fileAllocationEntry_->prepareForNextAction(*commands, getDownloadEngine());
-    getDownloadEngine()->addCommand(*commands);
-    commands->clear();
+    std::vector<std::unique_ptr<Command>> commands;
+    fileAllocationEntry_->prepareForNextAction(commands, getDownloadEngine());
+    getDownloadEngine()->addCommand(std::move(commands));
     getDownloadEngine()->setNoWait(true);
     return true;
   } else {
-    getDownloadEngine()->addCommand(this);
+    getDownloadEngine()->addCommand(std::unique_ptr<Command>(this));
     return false;
   }
 }

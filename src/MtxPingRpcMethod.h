@@ -23,12 +23,10 @@
 #include "RequestGroupMan.h"
 
 namespace aria2 {
-//namespace mtx {
 
 class MtxPingRpcMethod:public rpc::RpcMethod {
 protected:
-  virtual SharedHandle<ValueBase> process
-  (const rpc::RpcRequest& req, DownloadEngine* e);
+  virtual std::shared_ptr<ValueBase> process(const rpc::RpcRequest& req, DownloadEngine* e);
 public:
   static const char* getMethodName()
   {
@@ -38,6 +36,5 @@ public:
 
 
 }
-//}
 
 #endif

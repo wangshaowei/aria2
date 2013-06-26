@@ -40,9 +40,9 @@ namespace aria2 {
 
 namespace magnet {
 
-SharedHandle<Dict> parse(const std::string& magnet)
+std::shared_ptr<Dict> parse(const std::string& magnet)
 {
-  SharedHandle<Dict> dict;
+  std::shared_ptr<Dict> dict;
   if(!util::startsWith(magnet, "magnet:?")) {
     return dict;
   }
@@ -52,15 +52,14 @@ SharedHandle<Dict> parse(const std::string& magnet)
                   '&');
   for(std::vector<Scip>::const_iterator i = queries.begin(),
         eoi = queries.end(); i != eoi; ++i) {
-    std::pair<Scip, Scip> p;
-    util::divide(p, (*i).first, (*i).second, '=');
+    auto p = util::divide((*i).first, (*i).second, '=');
     std::string name(p.first.first, p.first.second);
     std::string value(util::percentDecode(p.second.first, p.second.second));
     List* l = downcast<List>(dict->get(name));
     if(l) {
       l->append(String::g(value));
     } else {
-      SharedHandle<List> l = List::g();
+      std::shared_ptr<List> l = List::g();
       l->append(String::g(value));
       dict->put(name, l);
     }

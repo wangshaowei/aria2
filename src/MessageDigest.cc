@@ -69,16 +69,16 @@ MessageDigest::MessageDigest()
 MessageDigest::~MessageDigest()
 {}
 
-SharedHandle<MessageDigest> MessageDigest::sha1()
+std::shared_ptr<MessageDigest> MessageDigest::sha1()
 {
-  SharedHandle<MessageDigest> md(new MessageDigest());
+  std::shared_ptr<MessageDigest> md(new MessageDigest());
   md->pImpl_ = MessageDigestImpl::sha1();
   return md;
 }
 
-SharedHandle<MessageDigest> MessageDigest::create(const std::string& hashType)
+std::shared_ptr<MessageDigest> MessageDigest::create(const std::string& hashType)
 {
-  SharedHandle<MessageDigest> md(new MessageDigest());
+  std::shared_ptr<MessageDigest> md(new MessageDigest());
   md->pImpl_ = MessageDigestImpl::create(hashType);
   return md;
 }
@@ -91,10 +91,9 @@ bool MessageDigest::supports(const std::string& hashType)
 std::vector<std::string> MessageDigest::getSupportedHashTypes()
 {
   std::vector<std::string> rv;
-  for (HashTypeEntry *i = vbegin(hashTypes), *eoi = vend(hashTypes);
-       i != eoi; ++i) {
-    if (MessageDigestImpl::supports(i->hashType)) {
-      rv.push_back(i->hashType);
+  for (const auto& i : hashTypes) {
+    if (MessageDigestImpl::supports(i.hashType)) {
+      rv.push_back(i.hashType);
     }
   }
   return rv;
@@ -134,11 +133,13 @@ public:
 
 bool MessageDigest::isStronger(const std::string& lhs, const std::string& rhs)
 {
-  HashTypeEntry* lEntry = std::find_if(vbegin(hashTypes), vend(hashTypes),
+  HashTypeEntry* lEntry = std::find_if(std::begin(hashTypes),
+                                       std::end(hashTypes),
                                        FindHashTypeEntry(lhs));
-  HashTypeEntry* rEntry = std::find_if(vbegin(hashTypes), vend(hashTypes),
+  HashTypeEntry* rEntry = std::find_if(std::begin(hashTypes),
+                                       std::end(hashTypes),
                                        FindHashTypeEntry(rhs));
-  if(lEntry == vend(hashTypes) || rEntry == vend(hashTypes)) {
+  if(lEntry == std::end(hashTypes) || rEntry == std::end(hashTypes)) {
     return false;
   }
   return lEntry->strength > rEntry->strength;

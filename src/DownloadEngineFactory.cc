@@ -86,17 +86,17 @@ namespace aria2 {
 
 DownloadEngineFactory::DownloadEngineFactory() {}
 
-SharedHandle<DownloadEngine>
+std::shared_ptr<DownloadEngine>
 DownloadEngineFactory::newDownloadEngine
-(Option* op, const std::vector<SharedHandle<RequestGroup> >& requestGroups)
+(Option* op, std::vector<std::shared_ptr<RequestGroup> > requestGroups)
 {
   const size_t MAX_CONCURRENT_DOWNLOADS =
     op->getAsInt(PREF_MAX_CONCURRENT_DOWNLOADS);
-  SharedHandle<EventPoll> eventPoll;
+  std::shared_ptr<EventPoll> eventPoll;
   const std::string& pollMethod = op->get(PREF_EVENT_POLL);
 #ifdef HAVE_LIBUV
   if (pollMethod == V_LIBUV) {
-    SharedHandle<LibuvEventPoll> ep(new LibuvEventPoll());
+    std::shared_ptr<LibuvEventPoll> ep(new LibuvEventPoll());
     if (!ep->good()) {
       throw DL_ABORT_EX("Initializing LibuvEventPoll failed."
                         " Try --event-poll=select");
@@ -107,7 +107,7 @@ DownloadEngineFactory::newDownloadEngine
 #endif // HAVE_LIBUV
 #ifdef HAVE_EPOLL
   if(pollMethod == V_EPOLL) {
-    SharedHandle<EpollEventPoll> ep(new EpollEventPoll());
+    std::shared_ptr<EpollEventPoll> ep(new EpollEventPoll());
     if(ep->good()) {
       eventPoll = ep;
     } else {
@@ -118,7 +118,7 @@ DownloadEngineFactory::newDownloadEngine
 #endif // HAVE_EPLL
 #ifdef HAVE_KQUEUE
     if(pollMethod == V_KQUEUE) {
-      SharedHandle<KqueueEventPoll> kp(new KqueueEventPoll());
+      std::shared_ptr<KqueueEventPoll> kp(new KqueueEventPoll());
       if(kp->good()) {
         eventPoll = kp;
       } else {
@@ -129,7 +129,7 @@ DownloadEngineFactory::newDownloadEngine
 #endif // HAVE_KQUEUE
 #ifdef HAVE_PORT_ASSOCIATE
       if(pollMethod == V_PORT) {
-        SharedHandle<PortEventPoll> pp(new PortEventPoll());
+        std::shared_ptr<PortEventPoll> pp(new PortEventPoll());
         if(pp->good()) {
           eventPoll = pp;
         } else {
@@ -148,49 +148,51 @@ DownloadEngineFactory::newDownloadEngine
           } else {
             abort();
           }
-  SharedHandle<DownloadEngine> e(new DownloadEngine(eventPoll));
+  std::shared_ptr<DownloadEngine> e(new DownloadEngine(eventPoll));
   e->setOption(op);
 
-  SharedHandle<RequestGroupMan>
-    requestGroupMan(new RequestGroupMan(requestGroups, MAX_CONCURRENT_DOWNLOADS,
-                                        op));
+  auto requestGroupMan = std::make_shared<RequestGroupMan>
+    (std::move(requestGroups), MAX_CONCURRENT_DOWNLOADS, op);
   requestGroupMan->initWrDiskCache();
   e->setRequestGroupMan(requestGroupMan);
   e->setFileAllocationMan
-    (SharedHandle<FileAllocationMan>(new FileAllocationMan()));
+    (std::shared_ptr<FileAllocationMan>(new FileAllocationMan()));
 #ifdef ENABLE_MESSAGE_DIGEST
   e->setCheckIntegrityMan
-    (SharedHandle<CheckIntegrityMan>(new CheckIntegrityMan()));
+    (std::shared_ptr<CheckIntegrityMan>(new CheckIntegrityMan()));
 #endif // ENABLE_MESSAGE_DIGEST
-  e->addRoutineCommand(new FillRequestGroupCommand(e->newCUID(), e.get()));
-  e->addRoutineCommand(new FileAllocationDispatcherCommand
+  e->addRoutineCommand(make_unique<FillRequestGroupCommand>
+                       (e->newCUID(), e.get()));
+  e->addRoutineCommand(make_unique<FileAllocationDispatcherCommand>
                        (e->newCUID(), e->getFileAllocationMan(), e.get()));
 #ifdef ENABLE_MESSAGE_DIGEST
-  e->addRoutineCommand(new CheckIntegrityDispatcherCommand
+  e->addRoutineCommand(make_unique<CheckIntegrityDispatcherCommand>
                        (e->newCUID(), e->getCheckIntegrityMan(), e.get()));
 #endif // ENABLE_MESSAGE_DIGEST
 
   if(op->getAsInt(PREF_AUTO_SAVE_INTERVAL) > 0) {
     e->addRoutineCommand
-      (new AutoSaveCommand(e->newCUID(), e.get(),
-                           op->getAsInt(PREF_AUTO_SAVE_INTERVAL)));
+      (make_unique<AutoSaveCommand>(e->newCUID(), e.get(),
+                                    op->getAsInt(PREF_AUTO_SAVE_INTERVAL)));
   }
   if(op->getAsInt(PREF_SAVE_SESSION_INTERVAL) > 0) {
-    e->addRoutineCommand
-      (new SaveSessionCommand(e->newCUID(), e.get(),
-                              op->getAsInt(PREF_SAVE_SESSION_INTERVAL)));
+    e->addRoutineCommand(make_unique<SaveSessionCommand>
+                         (e->newCUID(), e.get(),
+                          op->getAsInt(PREF_SAVE_SESSION_INTERVAL)));
   }
-  e->addRoutineCommand(new HaveEraseCommand(e->newCUID(), e.get(), 10));
+  e->addRoutineCommand(make_unique<HaveEraseCommand>
+                       (e->newCUID(), e.get(), 10));
   {
     time_t stopSec = op->getAsInt(PREF_STOP);
     if(stopSec > 0) {
-      e->addRoutineCommand(new TimedHaltCommand(e->newCUID(), e.get(),
-                                                stopSec));
+      e->addRoutineCommand(make_unique<TimedHaltCommand>(e->newCUID(), e.get(),
+                                                         stopSec));
     }
   }
   if(op->defined(PREF_STOP_WITH_PROCESS)) {
     unsigned int pid = op->getAsInt(PREF_STOP_WITH_PROCESS);
-    e->addRoutineCommand(new WatchProcessCommand(e->newCUID(), e.get(), pid));
+    e->addRoutineCommand(make_unique<WatchProcessCommand>(e->newCUID(),
+                                                          e.get(), pid));
   }
   if(op->getAsBool(PREF_ENABLE_RPC)) {
     bool ok = false;
@@ -201,13 +203,11 @@ DownloadEngineFactory::newDownloadEngine
     static int families[] = { AF_INET, AF_INET6 };
     size_t familiesLength = op->getAsBool(PREF_DISABLE_IPV6)?1:2;
     for(size_t i = 0; i < familiesLength; ++i) {
-      HttpListenCommand* httpListenCommand =
-        new HttpListenCommand(e->newCUID(), e.get(), families[i], secure);
+      auto httpListenCommand = make_unique<HttpListenCommand>
+        (e->newCUID(), e.get(), families[i], secure);
       if(httpListenCommand->bindPort(op->getAsInt(PREF_RPC_LISTEN_PORT))){
-        e->addCommand(httpListenCommand);
+        e->addCommand(std::move(httpListenCommand));
         ok = true;
-      } else {
-        delete httpListenCommand;
       }
     }
     if(!ok) {
@@ -216,7 +216,7 @@ DownloadEngineFactory::newDownloadEngine
   }
 
   // Add Mtx Network Mapping Command
-  e->addRoutineCommand(new MtxNetMappingCommand(e->newCUID(),
+  e->addRoutineCommand(make_unique<MtxNetMappingCommand>(e->newCUID(),
                                                 e.get(),
                                                 op->getAsInt(PREF_MTX_MAPPED_PORT)));
 

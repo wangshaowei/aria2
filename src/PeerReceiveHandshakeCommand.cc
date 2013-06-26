@@ -63,10 +63,10 @@ namespace aria2 {
 
 PeerReceiveHandshakeCommand::PeerReceiveHandshakeCommand
 (cuid_t cuid,
- const SharedHandle<Peer>& peer,
+ const std::shared_ptr<Peer>& peer,
  DownloadEngine* e,
- const SharedHandle<SocketCore>& s,
- const SharedHandle<PeerConnection>& peerConnection)
+ const std::shared_ptr<SocketCore>& s,
+ const std::shared_ptr<PeerConnection>& peerConnection)
   : PeerAbstractCommand(cuid, peer, e, s),
     peerConnection_(peerConnection)
 {
@@ -102,19 +102,19 @@ bool PeerReceiveHandshakeCommand::executeInternal()
     // check info_hash
     std::string infoHash(&data[28], &data[28+INFO_HASH_LENGTH]);
 
-    SharedHandle<DownloadContext> downloadContext =
+    std::shared_ptr<DownloadContext> downloadContext =
       getDownloadEngine()->getBtRegistry()->getDownloadContext(infoHash);
     if(!downloadContext) {
       throw DL_ABORT_EX
         (fmt("Unknown info hash %s",
              util::toHex(infoHash).c_str()));
     }
-    const SharedHandle<BtObject>& btObject =
+    const std::shared_ptr<BtObject>& btObject =
       getDownloadEngine()->getBtRegistry()->get
       (downloadContext->getOwnerRequestGroup()->getGID());
-    const SharedHandle<BtRuntime>& btRuntime = btObject->btRuntime;
-    const SharedHandle<PieceStorage>& pieceStorage = btObject->pieceStorage;
-    const SharedHandle<PeerStorage>& peerStorage = btObject->peerStorage;
+    const std::shared_ptr<BtRuntime>& btRuntime = btObject->btRuntime;
+    const std::shared_ptr<PieceStorage>& pieceStorage = btObject->pieceStorage;
+    const std::shared_ptr<PeerStorage>& peerStorage = btObject->peerStorage;
     if(!btRuntime->ready()) {
       throw DL_ABORT_EX
         (fmt("Unknown info hash %s",
@@ -142,8 +142,7 @@ bool PeerReceiveHandshakeCommand::executeInternal()
       // that the added peer must be checked out.
       if(peerStorage->addPeer(getPeer()) &&
          peerStorage->checkoutPeer(getCuid())) {
-        PeerInteractionCommand* command =
-          new PeerInteractionCommand
+        getDownloadEngine()->addCommand(make_unique<PeerInteractionCommand>
           (getCuid(),
            downloadContext->getOwnerRequestGroup(),
            getPeer(),
@@ -153,8 +152,7 @@ bool PeerReceiveHandshakeCommand::executeInternal()
            peerStorage,
            getSocket(),
            PeerInteractionCommand::RECEIVER_WAIT_HANDSHAKE,
-           peerConnection_);
-        getDownloadEngine()->addCommand(command);
+           peerConnection_));
         A2_LOG_DEBUG(fmt(MSG_INCOMING_PEER_CONNECTION,
                          getCuid(),
                          getPeer()->usedBy()));
@@ -162,7 +160,7 @@ bool PeerReceiveHandshakeCommand::executeInternal()
     }
     return true;
   } else {
-    getDownloadEngine()->addCommand(this);
+    addCommandSelf();
     return false;
   }
 }

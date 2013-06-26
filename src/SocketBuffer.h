@@ -39,8 +39,7 @@
 
 #include <string>
 #include <deque>
-
-#include "SharedHandle.h"
+#include <memory>
 
 namespace aria2 {
 
@@ -62,7 +61,7 @@ private:
       delete progressUpdate_;
     }
     virtual ssize_t send
-    (const SharedHandle<SocketCore>& socket, size_t offset) = 0;
+    (const std::shared_ptr<SocketCore>& socket, size_t offset) = 0;
     virtual bool final(size_t offset) const = 0;
     virtual size_t getLength() const = 0;
     virtual const unsigned char* getData() const = 0;
@@ -82,7 +81,7 @@ private:
                       ProgressUpdate* progressUpdate);
     virtual ~ByteArrayBufEntry();
     virtual ssize_t send
-    (const SharedHandle<SocketCore>& socket, size_t offset);
+    (const std::shared_ptr<SocketCore>& socket, size_t offset);
     virtual bool final(size_t offset) const;
     virtual size_t getLength() const;
     virtual const unsigned char* getData() const;
@@ -93,11 +92,11 @@ private:
 
   class StringBufEntry:public BufEntry {
   public:
-    StringBufEntry(const std::string& s,
+    StringBufEntry(std::string s,
                    ProgressUpdate* progressUpdate);
     StringBufEntry();
     virtual ssize_t send
-    (const SharedHandle<SocketCore>& socket, size_t offset);
+    (const std::shared_ptr<SocketCore>& socket, size_t offset);
     virtual bool final(size_t offset) const;
     virtual size_t getLength() const;
     virtual const unsigned char* getData() const;
@@ -106,16 +105,16 @@ private:
     std::string str_;
   };
 
-  SharedHandle<SocketCore> socket_;
+  std::shared_ptr<SocketCore> socket_;
 
-  std::deque<SharedHandle<BufEntry> > bufq_;
+  std::deque<std::unique_ptr<BufEntry> > bufq_;
 
   // Offset of data in bufq_[0]. SocketBuffer tries to send bufq_[0],
   // but it cannot always send whole data. In this case, offset points
   // to the data to be sent in the next send() call.
   size_t offset_;
 public:
-  SocketBuffer(const SharedHandle<SocketCore>& socket);
+  SocketBuffer(const std::shared_ptr<SocketCore>& socket);
 
   ~SocketBuffer();
 
@@ -136,7 +135,7 @@ public:
   // progressUpdate is not null, its update() function will be called
   // each time the data is sent. It will be deleted by this object. It
   // can be null.
-  void pushStr(const std::string& data, ProgressUpdate* progressUpdate = 0);
+  void pushStr(std::string data, ProgressUpdate* progressUpdate = 0);
 
   // Sends data in queue.  Returns the number of bytes sent.
   ssize_t send();

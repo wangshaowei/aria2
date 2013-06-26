@@ -38,6 +38,7 @@
 #include <getopt.h>
 
 #include <cstring>
+#include <cassert>
 #include <istream>
 #include <utility>
 
@@ -229,8 +230,7 @@ void OptionParser::parse(Option& option, std::istream& is) const
     if(line.empty() || line[0] == '#') {
       continue;
     }
-    std::pair<Sip, Sip> nv;
-    util::divide(nv, line.begin(), line.end(), '=');
+    auto nv = util::divide(std::begin(line), std::end(line), '=');
     if(nv.first.first == nv.first.second) {
       continue;
     }
@@ -354,9 +354,9 @@ const OptionHandler* OptionParser::findByShortName(char shortName) const
   return findById(shortOpts_[idx]);
 }
 
-SharedHandle<OptionParser> OptionParser::optionParser_;
+std::shared_ptr<OptionParser> OptionParser::optionParser_;
 
-const SharedHandle<OptionParser>& OptionParser::getInstance()
+const std::shared_ptr<OptionParser>& OptionParser::getInstance()
 {
   if(!optionParser_) {
     optionParser_.reset(new OptionParser());

@@ -36,7 +36,9 @@
 #define D_SEQUENTIAL_DISPATCHER_COMMAND_H
 
 #include "Command.h"
-#include "SharedHandle.h"
+
+#include <memory>
+
 #include "SequentialPicker.h"
 #include "DownloadEngine.h"
 #include "RequestGroupMan.h"
@@ -48,7 +50,7 @@ class DownloadEngine;
 template<typename T>
 class SequentialDispatcherCommand : public Command {
 private:
-  SharedHandle<SequentialPicker<T> > picker_;
+  std::shared_ptr<SequentialPicker<T> > picker_;
 
   DownloadEngine* e_;
 protected:
@@ -58,7 +60,7 @@ protected:
   }
 public:
   SequentialDispatcherCommand(cuid_t cuid,
-                              const SharedHandle<SequentialPicker<T> >& picker,
+                              const std::shared_ptr<SequentialPicker<T> >& picker,
                               DownloadEngine* e):
     Command(cuid), picker_(picker), e_(e)
   {
@@ -76,12 +78,13 @@ public:
       e_->setNoWait(true);
     }
 
-    e_->addRoutineCommand(this);
+    e_->addRoutineCommand(std::unique_ptr<Command>(this));
     return false;
   }
 
 protected:
-  virtual Command* createCommand(const SharedHandle<T>& entry) = 0;
+  virtual std::unique_ptr<Command> createCommand
+  (const std::shared_ptr<T>& entry) = 0;
 };
 
 } // namespace aria2

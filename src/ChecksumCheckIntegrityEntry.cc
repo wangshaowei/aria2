@@ -44,22 +44,23 @@
 
 namespace aria2 {
 
-ChecksumCheckIntegrityEntry::ChecksumCheckIntegrityEntry(RequestGroup* requestGroup, Command* nextCommand):
-  CheckIntegrityEntry(requestGroup, nextCommand),
+ChecksumCheckIntegrityEntry::ChecksumCheckIntegrityEntry
+(RequestGroup* requestGroup, std::unique_ptr<Command> nextCommand):
+  CheckIntegrityEntry(requestGroup, std::move(nextCommand)),
   redownload_(false) {}
 
 ChecksumCheckIntegrityEntry::~ChecksumCheckIntegrityEntry() {}
 
 bool ChecksumCheckIntegrityEntry::isValidationReady()
 {
-  const SharedHandle<DownloadContext>& dctx =
+  const std::shared_ptr<DownloadContext>& dctx =
     getRequestGroup()->getDownloadContext();
   return dctx->isChecksumVerificationAvailable();
 }
 
 void ChecksumCheckIntegrityEntry::initValidator()
 {
-  SharedHandle<IteratableChecksumValidator> validator
+  std::shared_ptr<IteratableChecksumValidator> validator
     (new IteratableChecksumValidator(getRequestGroup()->getDownloadContext(),
                                      getRequestGroup()->getPieceStorage()));
   validator->init();
@@ -68,15 +69,15 @@ void ChecksumCheckIntegrityEntry::initValidator()
 
 void
 ChecksumCheckIntegrityEntry::onDownloadFinished
-(std::vector<Command*>& commands, DownloadEngine* e)
+(std::vector<std::unique_ptr<Command>>& commands, DownloadEngine* e)
 {}
 
 void
 ChecksumCheckIntegrityEntry::onDownloadIncomplete
-(std::vector<Command*>& commands, DownloadEngine* e)
+(std::vector<std::unique_ptr<Command>>& commands, DownloadEngine* e)
 {
   if(redownload_) {
-    SharedHandle<FileAllocationEntry> entry
+    std::shared_ptr<FileAllocationEntry> entry
       (new StreamFileAllocationEntry(getRequestGroup(), popNextCommand()));
     proceedFileAllocation(commands, entry, e);
   }

@@ -42,28 +42,28 @@
 
 namespace aria2 {
 
-StreamCheckIntegrityEntry::StreamCheckIntegrityEntry(RequestGroup* requestGroup,
-                                                     Command* nextCommand):
-  PieceHashCheckIntegrityEntry(requestGroup, nextCommand)
+StreamCheckIntegrityEntry::StreamCheckIntegrityEntry
+(RequestGroup* requestGroup, std::unique_ptr<Command> nextCommand):
+  PieceHashCheckIntegrityEntry(requestGroup, std::move(nextCommand))
 {}
 
 StreamCheckIntegrityEntry::~StreamCheckIntegrityEntry() {}
 
 void StreamCheckIntegrityEntry::onDownloadIncomplete
-(std::vector<Command*>& commands, DownloadEngine* e)
+(std::vector<std::unique_ptr<Command>>& commands, DownloadEngine* e)
 {
-  const SharedHandle<PieceStorage>& ps = getRequestGroup()->getPieceStorage();
+  const std::shared_ptr<PieceStorage>& ps = getRequestGroup()->getPieceStorage();
   ps->onDownloadIncomplete();
   if(getRequestGroup()->getOption()->getAsBool(PREF_HASH_CHECK_ONLY)) {
     return;
   }
-  SharedHandle<FileAllocationEntry> entry
+  std::shared_ptr<FileAllocationEntry> entry
     (new StreamFileAllocationEntry(getRequestGroup(), popNextCommand()));
   proceedFileAllocation(commands, entry, e);
 }
 
 void StreamCheckIntegrityEntry::onDownloadFinished
-(std::vector<Command*>& commands, DownloadEngine* e)
+(std::vector<std::unique_ptr<Command>>& commands, DownloadEngine* e)
 {}
 
 } // namespace aria2

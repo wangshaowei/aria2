@@ -295,14 +295,16 @@ bool inRFC3986ReservedChars(const char c)
     ':' , '/' , '?' , '#' , '[' , ']' , '@',
     '!' , '$' , '&' , '\'' , '(' , ')',
     '*' , '+' , ',' , ';' , '=' };
-  return std::find(vbegin(reserved), vend(reserved), c) != vend(reserved);
+  return std::find(std::begin(reserved), std::end(reserved), c)
+    != std::end(reserved);
 }
 
 bool inRFC3986UnreservedChars(const char c)
 {
   static const char unreserved[] = { '-', '.', '_', '~' };
   return isAlpha(c) || isDigit(c) ||
-    std::find(vbegin(unreserved), vend(unreserved), c) != vend(unreserved);
+    std::find(std::begin(unreserved), std::end(unreserved), c)
+    != std::end(unreserved);
 }
 
 bool inRFC2978MIMECharset(const char c)
@@ -313,7 +315,7 @@ bool inRFC2978MIMECharset(const char c)
     '`', '{', '}', '~'
   };
   return isAlpha(c) || isDigit(c) ||
-    std::find(vbegin(chars), vend(chars), c) != vend(chars);
+    std::find(std::begin(chars), std::end(chars), c) != std::end(chars);
 }
 
 bool inRFC2616HttpToken(const char c)
@@ -323,7 +325,7 @@ bool inRFC2616HttpToken(const char c)
     '^', '_', '`', '|', '~'
   };
   return isAlpha(c) || isDigit(c) ||
-    std::find(vbegin(chars), vend(chars), c) != vend(chars);
+    std::find(std::begin(chars), std::end(chars), c) != std::end(chars);
 }
 
 bool inRFC5987AttrChar(const char c)
@@ -656,14 +658,14 @@ void parseIntSegments(SegList<int>& sgl, const std::string& src)
 namespace {
 void computeHeadPieces
 (std::vector<size_t>& indexes,
- const std::vector<SharedHandle<FileEntry> >& fileEntries,
+ const std::vector<std::shared_ptr<FileEntry> >& fileEntries,
  size_t pieceLength,
  int64_t head)
 {
   if(head == 0) {
     return;
   }
-  for(std::vector<SharedHandle<FileEntry> >::const_iterator fi =
+  for(std::vector<std::shared_ptr<FileEntry> >::const_iterator fi =
         fileEntries.begin(), eoi = fileEntries.end(); fi != eoi; ++fi) {
     if((*fi)->getLength() == 0) {
       continue;
@@ -681,14 +683,14 @@ void computeHeadPieces
 namespace {
 void computeTailPieces
 (std::vector<size_t>& indexes,
- const std::vector<SharedHandle<FileEntry> >& fileEntries,
+ const std::vector<std::shared_ptr<FileEntry> >& fileEntries,
  size_t pieceLength,
  int64_t tail)
 {
   if(tail == 0) {
     return;
   }
-  for(std::vector<SharedHandle<FileEntry> >::const_iterator fi =
+  for(std::vector<std::shared_ptr<FileEntry> >::const_iterator fi =
         fileEntries.begin(), eoi = fileEntries.end(); fi != eoi; ++fi) {
     if((*fi)->getLength() == 0) {
       continue;
@@ -706,7 +708,7 @@ void computeTailPieces
 
 void parsePrioritizePieceRange
 (std::vector<size_t>& result, const std::string& src,
- const std::vector<SharedHandle<FileEntry> >& fileEntries,
+ const std::vector<std::shared_ptr<FileEntry> >& fileEntries,
  size_t pieceLength,
  int64_t defaultSize)
 {
@@ -1182,16 +1184,15 @@ std::string getContentDispositionFilename(const std::string& header)
   }
 }
 
-std::string toUpper(const std::string& src) {
-  std::string temp = src;
-  uppercase(temp);
-  return temp;
+std::string toUpper(std::string src)
+{
+  uppercase(src);
+  return src;
 }
 
-std::string toLower(const std::string& src) {
-  std::string temp = src;
-  lowercase(temp);
-  return temp;
+std::string toLower(std::string src) {
+  lowercase(src);
+  return src;
 }
 
 void uppercase(std::string& s)
@@ -1409,7 +1410,7 @@ void convertBitfield(BitfieldMan* dest, const BitfieldMan* src)
   }
 }
 
-std::string toString(const SharedHandle<BinaryStream>& binaryStream)
+std::string toString(const std::shared_ptr<BinaryStream>& binaryStream)
 {
   std::stringstream strm;
   char data[2048];
@@ -1481,8 +1482,7 @@ std::string htmlEscape(const std::string& src)
 std::pair<size_t, std::string>
 parseIndexPath(const std::string& line)
 {
-  std::pair<Scip, Scip> p;
-  divide(p, line.begin(), line.end(), '=');
+  auto p = divide(std::begin(line), std::end(line), '=');
   uint32_t index;
   if(!parseUIntNoThrow(index, std::string(p.first.first, p.first.second))) {
     throw DL_ABORT_EX("Bad path index");
@@ -1506,7 +1506,7 @@ std::vector<std::pair<size_t, std::string> > createIndexPaths(std::istream& i)
 namespace {
 void generateRandomDataRandom(unsigned char* data, size_t length)
 {
-  const SharedHandle<SimpleRandomizer>& rd = SimpleRandomizer::getInstance();
+  SimpleRandomizer* rd = SimpleRandomizer::getInstance();
   for(size_t i = 0; i < length; ++i) {
     data[i] = static_cast<unsigned long>(rd->getRandomNumber(256));
   }
@@ -1663,9 +1663,9 @@ std::string escapePath(const std::string& s)
     unsigned char c = *i;
     if(in(c, 0x00u, 0x1fu) || c == 0x7fu
 #ifdef __MINGW32__
-       || std::find(vbegin(WIN_INVALID_PATH_CHARS),
-                    vend(WIN_INVALID_PATH_CHARS),
-                    c) != vend(WIN_INVALID_PATH_CHARS)
+       || std::find(std::begin(WIN_INVALID_PATH_CHARS),
+                    std::end(WIN_INVALID_PATH_CHARS),
+                    c) != std::end(WIN_INVALID_PATH_CHARS)
 #endif // __MINGW32__
        ){
       d += fmt("%%%02X", c);
@@ -1793,7 +1793,7 @@ void executeHook
 } // namespace
 
 void executeHookByOptName
-(const SharedHandle<RequestGroup>& group, const Option* option,
+(const std::shared_ptr<RequestGroup>& group, const Option* option,
  const Pref* pref)
 {
   executeHookByOptName(group.get(), option, pref);
@@ -1804,11 +1804,11 @@ void executeHookByOptName
 {
   const std::string& cmd = option->get(pref);
   if(!cmd.empty()) {
-    const SharedHandle<DownloadContext> dctx = group->getDownloadContext();
+    const std::shared_ptr<DownloadContext> dctx = group->getDownloadContext();
     std::string firstFilename;
     size_t numFiles = 0;
     if(!group->inMemoryDownload()) {
-      SharedHandle<FileEntry> file = dctx->getFirstRequestedFileEntry();
+      std::shared_ptr<FileEntry> file = dctx->getFirstRequestedFileEntry();
       if(file) {
         firstFilename = file->getPath();
       }

@@ -59,10 +59,10 @@ RpcMethod::RpcMethod()
 
 RpcMethod::~RpcMethod() {}
 
-SharedHandle<ValueBase> RpcMethod::createErrorResponse
+std::shared_ptr<ValueBase> RpcMethod::createErrorResponse
 (const Exception& e, const RpcRequest& req)
 {
-  SharedHandle<Dict> params = Dict::g();
+  std::shared_ptr<Dict> params = Dict::g();
   params->put((req.jsonRpc ? "code" : "faultCode"), Integer::g(1));
   params->put((req.jsonRpc ? "message" : "faultString"), std::string(e.what()));
   return params;
@@ -85,7 +85,7 @@ void gatherOption
 (InputIterator first, InputIterator last,
  Pred pred,
  Option* option,
- const SharedHandle<OptionParser>& optionParser)
+ const std::shared_ptr<OptionParser>& optionParser)
 {
   for(; first != last; ++first) {
     const std::string& optionName = (*first).first;
@@ -119,7 +119,7 @@ void RpcMethod::gatherRequestOption(Option* option, const Dict* optionsDict)
 {
   if(optionsDict) {
     gatherOption(optionsDict->begin(), optionsDict->end(),
-                 std::mem_fun(&OptionHandler::getInitialOption),
+                 std::mem_fn(&OptionHandler::getInitialOption),
                  option, optionParser_);
   }
 }
@@ -128,7 +128,7 @@ void RpcMethod::gatherChangeableOption(Option* option, const Dict* optionsDict)
 {
   if(optionsDict) {
     gatherOption(optionsDict->begin(), optionsDict->end(),
-                 std::mem_fun(&OptionHandler::getChangeOption),
+                 std::mem_fn(&OptionHandler::getChangeOption),
                  option, optionParser_);
   }
 }
@@ -139,7 +139,7 @@ void RpcMethod::gatherChangeableOptionForReserved
 {
   if(optionsDict) {
     gatherOption(optionsDict->begin(), optionsDict->end(),
-                 std::mem_fun(&OptionHandler::getChangeOptionForReserved),
+                 std::mem_fn(&OptionHandler::getChangeOptionForReserved),
                  option, optionParser_);
   }
 }
@@ -149,7 +149,7 @@ void RpcMethod::gatherChangeableGlobalOption
 {
   if(optionsDict) {
     gatherOption(optionsDict->begin(), optionsDict->end(),
-                 std::mem_fun(&OptionHandler::getChangeGlobalOption),
+                 std::mem_fn(&OptionHandler::getChangeGlobalOption),
                  option, optionParser_);
   }
 }

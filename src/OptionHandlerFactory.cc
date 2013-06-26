@@ -271,8 +271,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
                       (PREF_CONSOLE_LOG_LEVEL,
                        TEXT_CONSOLE_LOG_LEVEL,
                        V_NOTICE,
-                       std::vector<std::string>
-                       (vbegin(logLevels), vend(logLevels))));
+                       {std::begin(logLevels), std::end(logLevels)}));
     op->addTag(TAG_ADVANCED);
     handlers.push_back(op);
   }
@@ -333,8 +332,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
                       (PREF_DOWNLOAD_RESULT,
                        TEXT_DOWNLOAD_RESULT,
                        A2_V_DEFAULT,
-                       A2_V_DEFAULT,
-                       A2_V_FULL));
+                       { A2_V_DEFAULT, A2_V_FULL}));
     op->addTag(TAG_ADVANCED);
     op->setChangeGlobalOption(true);
     handlers.push_back(op);
@@ -379,24 +377,6 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
     handlers.push_back(op);
   }
   {
-    std::string params[] = {
-#ifdef HAVE_EPOLL
-      V_EPOLL,
-#endif // HAVE_EPOLL
-#ifdef HAVE_KQUEUE
-      V_KQUEUE,
-#endif // HAVE_KQUEUE
-#ifdef HAVE_PORT_ASSOCIATE
-      V_PORT,
-#endif // HAVE_PORT_ASSOCIATE
-#ifdef HAVE_LIBUV
-      V_LIBUV,
-#endif // HAVE_LIBUV
-#ifdef HAVE_POLL
-      V_POLL,
-#endif // HAVE_POLL
-      V_SELECT
-    };
     OptionHandler* op(new ParameterOptionHandler
                       (PREF_EVENT_POLL,
                        TEXT_EVENT_POLL,
@@ -413,23 +393,37 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
 #else // defined(HAVE_EPOLL)
                        V_SELECT,
 #endif // defined(HAVE_EPOLL)
-                       std::vector<std::string>
-                       (vbegin(params), vend(params))));
+                       {
+#ifdef HAVE_EPOLL
+                         V_EPOLL,
+#endif // HAVE_EPOLL
+#ifdef HAVE_KQUEUE
+                           V_KQUEUE,
+#endif // HAVE_KQUEUE
+#ifdef HAVE_PORT_ASSOCIATE
+                           V_PORT,
+#endif // HAVE_PORT_ASSOCIATE
+#ifdef HAVE_LIBUV
+                           V_LIBUV,
+#endif // HAVE_LIBUV
+#ifdef HAVE_POLL
+                           V_POLL,
+#endif // HAVE_POLL
+                           V_SELECT
+                           }));
     op->addTag(TAG_ADVANCED);
     handlers.push_back(op);
   }
   {
-    const std::string params[] = { V_NONE, V_PREALLOC, V_TRUNC,
-#ifdef HAVE_SOME_FALLOCATE
-                                   V_FALLOC
-#endif // HAVE_SOME_FALLOCATE
-    };
     OptionHandler* op(new ParameterOptionHandler
                       (PREF_FILE_ALLOCATION,
                        TEXT_FILE_ALLOCATION,
                        V_PREALLOC,
-                       std::vector<std::string>
-                       (vbegin(params), vend(params)),
+                       { V_NONE, V_PREALLOC, V_TRUNC,
+#ifdef HAVE_SOME_FALLOCATE
+                           V_FALLOC
+#endif // HAVE_SOME_FALLOCATE
+                           },
                        'a'));
     op->addTag(TAG_BASIC);
     op->addTag(TAG_FILE);
@@ -536,8 +530,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
                       (PREF_LOG_LEVEL,
                        TEXT_LOG_LEVEL,
                        V_DEBUG,
-                       std::vector<std::string>
-                       (vbegin(logLevels), vend(logLevels))));
+                       {std::begin(logLevels), std::end(logLevels)}));
     op->addTag(TAG_ADVANCED);
     op->setChangeGlobalOption(true);
     handlers.push_back(op);
@@ -1159,9 +1152,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
                       (PREF_STREAM_PIECE_SELECTOR,
                        TEXT_STREAM_PIECE_SELECTOR,
                        A2_V_DEFAULT,
-                       A2_V_DEFAULT,
-                       V_INORDER,
-                       A2_V_GEOM));
+                       { A2_V_DEFAULT, V_INORDER, A2_V_GEOM }));
     op->addTag(TAG_FTP);
     op->addTag(TAG_HTTP);
     op->setInitialOption(true);
@@ -1184,13 +1175,11 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
     handlers.push_back(op);
   }
   {
-    const std::string params[] = { V_INORDER, V_FEEDBACK, V_ADAPTIVE };
     OptionHandler* op(new ParameterOptionHandler
                       (PREF_URI_SELECTOR,
                        TEXT_URI_SELECTOR,
                        V_FEEDBACK,
-                       std::vector<std::string>
-                       (vbegin(params), vend(params))));
+                       { V_INORDER, V_FEEDBACK, V_ADAPTIVE }));
     op->addTag(TAG_FTP);
     op->addTag(TAG_HTTP);
     op->setInitialOption(true);
@@ -1403,7 +1392,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
     OptionHandler* op(new DefaultOptionHandler
                       (PREF_USER_AGENT,
                        TEXT_USER_AGENT,
-                       "aria2/"PACKAGE_VERSION,
+                       "aria2/" PACKAGE_VERSION,
                        A2STR::NIL,
                        OptionHandler::REQ_ARG,
                        'U'));
@@ -1456,7 +1445,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
                       (PREF_FTP_TYPE,
                        TEXT_FTP_TYPE,
                        V_BINARY,
-                       V_BINARY, V_ASCII));
+                       { V_BINARY, V_ASCII }));
     op->addTag(TAG_FTP);
     op->setInitialOption(true);
     op->setChangeGlobalOption(true);
@@ -1653,7 +1642,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
                       (PREF_PROXY_METHOD,
                        TEXT_PROXY_METHOD,
                        V_GET,
-                       V_GET, V_TUNNEL));
+                       { V_GET, V_TUNNEL }));
     op->addTag(TAG_FTP);
     op->addTag(TAG_HTTP);
     op->setInitialOption(true);
@@ -1802,7 +1791,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
                       (PREF_BT_MIN_CRYPTO_LEVEL,
                        TEXT_BT_MIN_CRYPTO_LEVEL,
                        V_PLAIN,
-                       V_PLAIN, V_ARC4));
+                       { V_PLAIN, V_ARC4 }));
     op->addTag(TAG_BITTORRENT);
     op->setInitialOption(true);
     op->setChangeGlobalOption(true);
@@ -2072,7 +2061,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
                       (PREF_FOLLOW_TORRENT,
                        TEXT_FOLLOW_TORRENT,
                        A2_V_TRUE,
-                       A2_V_TRUE, V_MEM, A2_V_FALSE));
+                       { A2_V_TRUE, V_MEM, A2_V_FALSE }));
     op->addTag(TAG_BITTORRENT);
     op->setInitialOption(true);
     op->setChangeGlobalOption(true);
@@ -2200,7 +2189,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
                       (PREF_FOLLOW_METALINK,
                        TEXT_FOLLOW_METALINK,
                        A2_V_TRUE,
-                       A2_V_TRUE, V_MEM, A2_V_FALSE));
+                       { A2_V_TRUE, V_MEM, A2_V_FALSE }));
     op->addTag(TAG_METALINK);
     op->setInitialOption(true);
     op->setChangeGlobalOption(true);
@@ -2261,13 +2250,11 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
     handlers.push_back(op);
   }
   {
-    const std::string params[] = { V_HTTP, V_HTTPS, V_FTP, V_NONE };
     OptionHandler* op(new ParameterOptionHandler
                       (PREF_METALINK_PREFERRED_PROTOCOL,
                        TEXT_METALINK_PREFERRED_PROTOCOL,
                        V_NONE,
-                       std::vector<std::string>
-                       (vbegin(params), vend(params))));
+                       { V_HTTP, V_HTTPS, V_FTP, V_NONE }));
     op->addTag(TAG_METALINK);
     op->setInitialOption(true);
     op->setChangeGlobalOption(true);

@@ -104,12 +104,13 @@ void handler(int signal) {
 } // namespace
 
 MultiUrlRequestInfo::MultiUrlRequestInfo
-(std::vector<SharedHandle<RequestGroup> >& requestGroups,
- const SharedHandle<Option>& op,
- const SharedHandle<StatCalc>& statCalc,
- const SharedHandle<OutputFile>& summaryOut,
- const SharedHandle<UriListParser>& uriListParser)
-  : option_(op),
+(std::vector<std::shared_ptr<RequestGroup> > requestGroups,
+ const std::shared_ptr<Option>& op,
+ const std::shared_ptr<StatCalc>& statCalc,
+ const std::shared_ptr<OutputFile>& summaryOut,
+ const std::shared_ptr<UriListParser>& uriListParser)
+  : requestGroups_(std::move(requestGroups)),
+    option_(op),
     statCalc_(statCalc),
     summaryOut_(summaryOut),
     uriListParser_(uriListParser),
@@ -120,7 +121,6 @@ MultiUrlRequestInfo::MultiUrlRequestInfo
 #else // !HAVE_SIGACTION
   mask_ = 0;
 #endif // !HAVE_SIGACTION
-  requestGroups_.swap(requestGroups);
 }
 
 MultiUrlRequestInfo::~MultiUrlRequestInfo() {}
@@ -137,8 +137,7 @@ int MultiUrlRequestInfo::prepare()
 {
   global::globalHaltRequested = 0;
   try {
-    SharedHandle<Notifier> notifier(new Notifier());
-    SingletonHolder<Notifier>::instance(notifier);
+    SingletonHolder<Notifier>::instance(make_unique<Notifier>());
 
 #ifdef ENABLE_SSL
     if(option_->getAsBool(PREF_ENABLE_RPC) &&
@@ -150,7 +149,7 @@ int MultiUrlRequestInfo::prepare()
          ) {
         // We set server TLS context to the SocketCore before creating
         // DownloadEngine instance.
-        SharedHandle<TLSContext> svTlsContext(TLSContext::make(TLS_SERVER));
+        std::shared_ptr<TLSContext> svTlsContext(TLSContext::make(TLS_SERVER));
         svTlsContext->addCredentialFile(option_->get(PREF_RPC_CERTIFICATE),
                                         option_->get(PREF_RPC_PRIVATE_KEY));
         SocketCore::setServerTLSContext(svTlsContext);
@@ -161,14 +160,13 @@ int MultiUrlRequestInfo::prepare()
     }
 #endif // ENABLE_SSL
 
+    // RequestGroups will be transferred to DownloadEngine
     e_ = DownloadEngineFactory().newDownloadEngine(option_.get(),
-                                                   requestGroups_);
-    // Avoid keeping RequestGroups alive longer than necessary
-    requestGroups_.clear();
+                                                   std::move(requestGroups_));
 
 #ifdef ENABLE_WEBSOCKET
     if(option_->getAsBool(PREF_ENABLE_RPC)) {
-      SharedHandle<rpc::WebSocketSessionMan> wsSessionMan
+      std::shared_ptr<rpc::WebSocketSessionMan> wsSessionMan
         (new rpc::WebSocketSessionMan());
       e_->setWebSocketSessionMan(wsSessionMan);
       SingletonHolder<Notifier>::instance()->addDownloadEventListener
@@ -189,7 +187,7 @@ int MultiUrlRequestInfo::prepare()
       }
     }
 
-    SharedHandle<AuthConfigFactory> authConfigFactory(new AuthConfigFactory());
+    std::shared_ptr<AuthConfigFactory> authConfigFactory(new AuthConfigFactory());
     File netrccf(option_->get(PREF_NETRC_PATH));
     if(!option_->getAsBool(PREF_NO_NETRC) && netrccf.isFile()) {
 #ifdef __MINGW32__
@@ -202,7 +200,7 @@ int MultiUrlRequestInfo::prepare()
         A2_LOG_NOTICE(fmt(MSG_INCORRECT_NETRC_PERMISSION,
                           option_->get(PREF_NETRC_PATH).c_str()));
       } else {
-        SharedHandle<Netrc> netrc(new Netrc());
+        std::shared_ptr<Netrc> netrc(new Netrc());
         netrc->parse(option_->get(PREF_NETRC_PATH));
         authConfigFactory->setNetrc(netrc);
       }
@@ -210,7 +208,7 @@ int MultiUrlRequestInfo::prepare()
     e_->setAuthConfigFactory(authConfigFactory);
 
 #ifdef ENABLE_SSL
-    SharedHandle<TLSContext> clTlsContext(TLSContext::make(TLS_CLIENT));
+    std::shared_ptr<TLSContext> clTlsContext(TLSContext::make(TLS_CLIENT));
     if(!option_->blank(PREF_CERTIFICATE) &&
        !option_->blank(PREF_PRIVATE_KEY)) {
       clTlsContext->addCredentialFile(option_->get(PREF_CERTIFICATE),
@@ -375,7 +373,7 @@ void MultiUrlRequestInfo::resetSignalHandlers()
 #endif // SIGPIPE
 }
 
-const SharedHandle<DownloadEngine>&
+const std::shared_ptr<DownloadEngine>&
 MultiUrlRequestInfo::getDownloadEngine() const
 {
   return e_;

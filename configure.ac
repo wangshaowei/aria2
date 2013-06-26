@@ -93,6 +93,9 @@ AC_LANG([C++])
 # Check pkg-config is available
 PKG_PROG_PKG_CONFIG([0.20])
 
+# Check C++ compiler supports C++0x/C++11 feature
+AX_CXX_COMPILE_STDCXX_11([noext])
+
 # Check static build is requested
 if test "x$ARIA2_STATIC" = "xyes"; then
   case "$host" in

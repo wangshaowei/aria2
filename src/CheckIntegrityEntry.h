@@ -38,8 +38,8 @@
 #include "RequestGroupEntry.h"
 
 #include <vector>
+#include <memory>
 
-#include "SharedHandle.h"
 #include "ProgressAwareEntry.h"
 
 namespace aria2 {
@@ -51,15 +51,17 @@ class FileAllocationEntry;
 class CheckIntegrityEntry : public RequestGroupEntry,
                             public ProgressAwareEntry {
 private:
-  SharedHandle<IteratableValidator> validator_;
+  std::shared_ptr<IteratableValidator> validator_;
 protected:
-  void setValidator(const SharedHandle<IteratableValidator>& validator);
+  void setValidator(const std::shared_ptr<IteratableValidator>& validator);
 
-  void proceedFileAllocation(std::vector<Command*>& commands,
-                             const SharedHandle<FileAllocationEntry>& entry,
+  void proceedFileAllocation(std::vector<std::unique_ptr<Command>>& commands,
+                             const std::shared_ptr<FileAllocationEntry>& entry,
                              DownloadEngine* e);
 public:
-  CheckIntegrityEntry(RequestGroup* requestGroup, Command* nextCommand = 0);
+  CheckIntegrityEntry(RequestGroup* requestGroup,
+                      std::unique_ptr<Command> nextCommand =
+                      std::unique_ptr<Command>());
 
   virtual ~CheckIntegrityEntry();
 
@@ -75,11 +77,13 @@ public:
 
   virtual void initValidator() = 0;
 
-  virtual void onDownloadFinished(std::vector<Command*>& commands,
-                                  DownloadEngine* e) = 0;
+  virtual void onDownloadFinished
+  (std::vector<std::unique_ptr<Command>>& commands,
+   DownloadEngine* e) = 0;
 
-  virtual void onDownloadIncomplete(std::vector<Command*>& commands,
-                                    DownloadEngine* e) = 0;
+  virtual void onDownloadIncomplete
+  (std::vector<std::unique_ptr<Command>>& commands,
+   DownloadEngine* e) = 0;
 
   void cutTrailingGarbage();
 };

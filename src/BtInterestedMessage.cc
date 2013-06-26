@@ -41,7 +41,10 @@ namespace aria2 {
 
 const char BtInterestedMessage::NAME[] = "interested";
 
-BtInterestedMessage::BtInterestedMessage():ZeroBtMessage(ID, NAME) {}
+BtInterestedMessage::BtInterestedMessage()
+  : ZeroBtMessage(ID, NAME),
+    peerStorage_(0)
+{}
 
 BtInterestedMessage::~BtInterestedMessage() {}
 
@@ -69,7 +72,7 @@ bool BtInterestedMessage::sendPredicate() const
 
 namespace {
 struct ThisProgressUpdate : public ProgressUpdate {
-  ThisProgressUpdate(const SharedHandle<Peer>& peer)
+  ThisProgressUpdate(const std::shared_ptr<Peer>& peer)
     : peer(peer) {}
   virtual void update(size_t length, bool complete)
   {
@@ -77,7 +80,7 @@ struct ThisProgressUpdate : public ProgressUpdate {
       peer->amInterested(true);
     }
   }
-  SharedHandle<Peer> peer;
+  std::shared_ptr<Peer> peer;
 };
 } // namespace
 
@@ -86,8 +89,7 @@ ProgressUpdate* BtInterestedMessage::getProgressUpdate()
   return new ThisProgressUpdate(getPeer());
 }
 
-void BtInterestedMessage::setPeerStorage
-(const SharedHandle<PeerStorage>& peerStorage)
+void BtInterestedMessage::setPeerStorage(PeerStorage* peerStorage)
 {
   peerStorage_ = peerStorage;
 }

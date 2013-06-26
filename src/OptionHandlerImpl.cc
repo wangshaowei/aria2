@@ -372,8 +372,7 @@ ChecksumOptionHandler::~ChecksumOptionHandler() {}
 void ChecksumOptionHandler::parseArg(Option& option, const std::string& optarg)
   const
 {
-  std::pair<Scip, Scip> p;
-  util::divide(p, optarg.begin(), optarg.end(), '=');
+  auto p = util::divide(std::begin(optarg), std::end(optarg), '=');
   std::string hashType(p.first.first, p.first.second);
   std::string hexDigest(p.second.first, p.second.second);
   util::lowercase(hashType);
@@ -394,54 +393,12 @@ ParameterOptionHandler::ParameterOptionHandler
 (const Pref* pref,
  const char* description,
  const std::string& defaultValue,
- const std::vector<std::string>& validParamValues,
+ std::vector<std::string> validParamValues,
  char shortName)
   : AbstractOptionHandler(pref, description, defaultValue,
                           OptionHandler::REQ_ARG, shortName),
-    validParamValues_(validParamValues)
+    validParamValues_(std::move(validParamValues))
 {}
-
-ParameterOptionHandler::ParameterOptionHandler
-(const Pref* pref,
- const char* description,
- const std::string& defaultValue,
- const std::string& validParamValue,
- char shortName)
-  : AbstractOptionHandler(pref, description, defaultValue,
-                          OptionHandler::REQ_ARG, shortName)
-{
-  validParamValues_.push_back(validParamValue);
-}
-
-ParameterOptionHandler::ParameterOptionHandler
-(const Pref* pref,
- const char* description,
- const std::string& defaultValue,
- const std::string& validParamValue1,
- const std::string& validParamValue2,
- char shortName)
-  : AbstractOptionHandler(pref, description, defaultValue,
-                          OptionHandler::REQ_ARG, shortName)
-{
-  validParamValues_.push_back(validParamValue1);
-  validParamValues_.push_back(validParamValue2);
-}
-
-ParameterOptionHandler::ParameterOptionHandler
-(const Pref* pref,
- const char* description,
- const std::string& defaultValue,
- const std::string& validParamValue1,
- const std::string& validParamValue2,
- const std::string& validParamValue3,
- char shortName)
-  : AbstractOptionHandler(pref, description, defaultValue,
-                          OptionHandler::REQ_ARG, shortName)
-{
-  validParamValues_.push_back(validParamValue1);
-  validParamValues_.push_back(validParamValue2);
-  validParamValues_.push_back(validParamValue3);
-}
 
 ParameterOptionHandler::~ParameterOptionHandler() {}
 
@@ -611,7 +568,7 @@ void PrioritizePieceOptionHandler::parseArg
   // error.
   std::vector<size_t> result;
   util::parsePrioritizePieceRange
-    (result, optarg, std::vector<SharedHandle<FileEntry> >(), 1024);
+    (result, optarg, std::vector<std::shared_ptr<FileEntry> >(), 1024);
   option.put(pref_, optarg);
 }
 

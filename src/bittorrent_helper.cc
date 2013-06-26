@@ -112,7 +112,7 @@ const std::string MULTI("multi");
 const std::string SINGLE("single");
 
 namespace {
-void extractPieceHash(const SharedHandle<DownloadContext>& ctx,
+void extractPieceHash(const std::shared_ptr<DownloadContext>& ctx,
                       const std::string& hashData,
                       size_t hashLength,
                       size_t numPieces)
@@ -129,17 +129,16 @@ void extractPieceHash(const SharedHandle<DownloadContext>& ctx,
 
 namespace {
 void extractUrlList
-(const SharedHandle<TorrentAttribute>& torrent, std::vector<std::string>& uris,
+(TorrentAttribute* torrent, std::vector<std::string>& uris,
  const ValueBase* v)
 {
   class UrlListVisitor:public ValueBaseVisitor {
   private:
     std::vector<std::string>& uris_;
-    const SharedHandle<TorrentAttribute>& torrent_;
+    TorrentAttribute* torrent_;
   public:
     UrlListVisitor
-    (std::vector<std::string>& uris,
-     const SharedHandle<TorrentAttribute>& torrent):
+    (std::vector<std::string>& uris, TorrentAttribute* torrent):
       uris_(uris), torrent_(torrent) {}
 
     virtual void visit(const String& v)
@@ -194,10 +193,10 @@ OutputIterator createUri
 
 namespace {
 void extractFileEntries
-(const SharedHandle<DownloadContext>& ctx,
- const SharedHandle<TorrentAttribute>& torrent,
+(const std::shared_ptr<DownloadContext>& ctx,
+ TorrentAttribute* torrent,
  const Dict* infoDict,
- const SharedHandle<Option>& option,
+ const std::shared_ptr<Option>& option,
  const std::string& defaultName,
  const std::string& overrideName,
  const std::vector<std::string>& urlList)
@@ -228,7 +227,7 @@ void extractFileEntries
   }
   torrent->name = utf8Name;
   int maxConn = option->getAsInt(PREF_MAX_CONNECTION_PER_SERVER);
-  std::vector<SharedHandle<FileEntry> > fileEntries;
+  std::vector<std::shared_ptr<FileEntry> > fileEntries;
   const List* filesList = downcast<List>(infoDict->get(C_FILES));
   if(filesList) {
     fileEntries.reserve(filesList->size());
@@ -292,7 +291,7 @@ void extractFileEntries
                              (util::percentEncode)));
       std::vector<std::string> uris;
       createUri(urlList.begin(), urlList.end(),std::back_inserter(uris),pePath);
-      SharedHandle<FileEntry> fileEntry
+      std::shared_ptr<FileEntry> fileEntry
         (new FileEntry(util::applyDir(option->get(PREF_DIR),
                                       util::escapePath(utf8Path)),
                        fileLengthData->i(), offset, uris));
@@ -324,7 +323,7 @@ void extractFileEntries
         uris.push_back(*i);
       }
     }
-    SharedHandle<FileEntry> fileEntry
+    std::shared_ptr<FileEntry> fileEntry
       (new FileEntry(util::applyDir(option->get(PREF_DIR),
                                     util::escapePath(utf8Name)),
                      totalLength, 0, uris));
@@ -341,8 +340,7 @@ void extractFileEntries
 } // namespace
 
 namespace {
-void extractAnnounce
-(const SharedHandle<TorrentAttribute>& torrent, const Dict* rootDict)
+void extractAnnounce(TorrentAttribute* torrent, const Dict* rootDict)
 {
   const List* announceList = downcast<List>(rootDict->get(C_ANNOUNCE_LIST));
   if(announceList) {
@@ -376,8 +374,7 @@ void extractAnnounce
 } // namespace
 
 namespace {
-void extractNodes
-(const SharedHandle<TorrentAttribute>& torrent, const ValueBase* nodesListSrc)
+void extractNodes(TorrentAttribute* torrent, const ValueBase* nodesListSrc)
 {
   const List* nodesList = downcast<List>(nodesListSrc);
   if(nodesList) {
@@ -408,9 +405,9 @@ void extractNodes
 
 namespace {
 void processRootDictionary
-(const SharedHandle<DownloadContext>& ctx,
- const SharedHandle<ValueBase>& root,
- const SharedHandle<Option>& option,
+(const std::shared_ptr<DownloadContext>& ctx,
+ const std::shared_ptr<ValueBase>& root,
+ const std::shared_ptr<Option>& option,
  const std::string& defaultName,
  const std::string& overrideName,
  const std::vector<std::string>& uris)
@@ -425,7 +422,7 @@ void processRootDictionary
     throw DL_ABORT_EX2(fmt(MSG_MISSING_BT_INFO, C_INFO.c_str()),
                        error_code::BITTORRENT_PARSE_ERROR);
   }
-  SharedHandle<TorrentAttribute> torrent(new TorrentAttribute());
+  std::unique_ptr<TorrentAttribute> torrent(new TorrentAttribute());
 
   // retrieve infoHash
   std::string encodedInfoDict = bencode2::encode(infoDict);
@@ -478,22 +475,22 @@ void processRootDictionary
   // This implemantation obeys HTTP-Seeding specification:
   // see http://www.getright.com/seedtorrent.html
   std::vector<std::string> urlList;
-  extractUrlList(torrent, urlList, rootDict->get(C_URL_LIST).get());
+  extractUrlList(torrent.get(), urlList, rootDict->get(C_URL_LIST).get());
   urlList.insert(urlList.end(), uris.begin(), uris.end());
   std::sort(urlList.begin(), urlList.end());
   urlList.erase(std::unique(urlList.begin(), urlList.end()), urlList.end());
 
   // retrieve file entries
   extractFileEntries
-    (ctx, torrent, infoDict, option, defaultName, overrideName, urlList);
+    (ctx, torrent.get(), infoDict, option, defaultName, overrideName, urlList);
   if((ctx->getTotalLength()+pieceLength-1)/pieceLength != numPieces) {
     throw DL_ABORT_EX2("Too few/many piece hash.",
                        error_code::BITTORRENT_PARSE_ERROR);
   }
   // retrieve announce
-  extractAnnounce(torrent, rootDict);
+  extractAnnounce(torrent.get(), rootDict);
   // retrieve nodes
-  extractNodes(torrent, rootDict->get(C_NODES).get());
+  extractNodes(torrent.get(), rootDict->get(C_NODES).get());
 
   const Integer* creationDate = downcast<Integer>(rootDict->get(C_CREATION_DATE));
   if(creationDate) {
@@ -513,13 +510,13 @@ void processRootDictionary
     torrent->createdBy = util::encodeNonUtf8(createdBy->s());
   }
 
-  ctx->setAttribute(CTX_ATTR_BT, torrent);
+  ctx->setAttribute(CTX_ATTR_BT, std::move(torrent));
 }
 } // namespace
 
 void load(const std::string& torrentFile,
-          const SharedHandle<DownloadContext>& ctx,
-          const SharedHandle<Option>& option,
+          const std::shared_ptr<DownloadContext>& ctx,
+          const std::shared_ptr<Option>& option,
           const std::string& overrideName)
 {
   ValueBaseBencodeParser parser;
@@ -532,8 +529,8 @@ void load(const std::string& torrentFile,
 }
 
 void load(const std::string& torrentFile,
-          const SharedHandle<DownloadContext>& ctx,
-          const SharedHandle<Option>& option,
+          const std::shared_ptr<DownloadContext>& ctx,
+          const std::shared_ptr<Option>& option,
           const std::vector<std::string>& uris,
           const std::string& overrideName)
 {
@@ -548,8 +545,8 @@ void load(const std::string& torrentFile,
 
 void loadFromMemory(const unsigned char* content,
                     size_t length,
-                    const SharedHandle<DownloadContext>& ctx,
-                    const SharedHandle<Option>& option,
+                    const std::shared_ptr<DownloadContext>& ctx,
+                    const std::shared_ptr<Option>& option,
                     const std::string& defaultName,
                     const std::string& overrideName)
 {
@@ -563,8 +560,8 @@ void loadFromMemory(const unsigned char* content,
 
 void loadFromMemory(const unsigned char* content,
                     size_t length,
-                    const SharedHandle<DownloadContext>& ctx,
-                    const SharedHandle<Option>& option,
+                    const std::shared_ptr<DownloadContext>& ctx,
+                    const std::shared_ptr<Option>& option,
                     const std::vector<std::string>& uris,
                     const std::string& defaultName,
                     const std::string& overrideName)
@@ -578,8 +575,8 @@ void loadFromMemory(const unsigned char* content,
 }
 
 void loadFromMemory(const std::string& context,
-                    const SharedHandle<DownloadContext>& ctx,
-                    const SharedHandle<Option>& option,
+                    const std::shared_ptr<DownloadContext>& ctx,
+                    const std::shared_ptr<Option>& option,
                     const std::string& defaultName,
                     const std::string& overrideName)
 {
@@ -592,8 +589,8 @@ void loadFromMemory(const std::string& context,
 }
 
 void loadFromMemory(const std::string& context,
-                    const SharedHandle<DownloadContext>& ctx,
-                    const SharedHandle<Option>& option,
+                    const std::shared_ptr<DownloadContext>& ctx,
+                    const std::shared_ptr<Option>& option,
                     const std::vector<std::string>& uris,
                     const std::string& defaultName,
                     const std::string& overrideName)
@@ -606,9 +603,9 @@ void loadFromMemory(const std::string& context,
      uris);
 }
 
-void loadFromMemory(const SharedHandle<ValueBase>& torrent,
-                    const SharedHandle<DownloadContext>& ctx,
-                    const SharedHandle<Option>& option,
+void loadFromMemory(const std::shared_ptr<ValueBase>& torrent,
+                    const std::shared_ptr<DownloadContext>& ctx,
+                    const std::shared_ptr<Option>& option,
                     const std::vector<std::string>& uris,
                     const std::string& defaultName,
                     const std::string& overrideName)
@@ -621,21 +618,37 @@ void loadFromMemory(const SharedHandle<ValueBase>& torrent,
      uris);
 }
 
-SharedHandle<TorrentAttribute> getTorrentAttrs
-(const SharedHandle<DownloadContext>& dctx)
+TorrentAttribute* getTorrentAttrs
+(const std::shared_ptr<DownloadContext>& dctx)
 {
-  return static_pointer_cast<TorrentAttribute>(dctx->getAttribute(CTX_ATTR_BT));
+  return getTorrentAttrs(dctx.get());
 }
 
-const unsigned char*
-getInfoHash(const SharedHandle<DownloadContext>& dctx)
+TorrentAttribute* getTorrentAttrs(DownloadContext* dctx)
+{
+  return static_cast<TorrentAttribute*>(dctx->getAttribute(CTX_ATTR_BT));
+}
+
+const unsigned char* getInfoHash
+(const std::shared_ptr<DownloadContext>& dctx)
+{
+  return getInfoHash(dctx.get());
+}
+
+const unsigned char* getInfoHash(DownloadContext* dctx)
 {
   return reinterpret_cast<const unsigned char*>
     (getTorrentAttrs(dctx)->infoHash.data());
 }
 
 std::string
-getInfoHashString(const SharedHandle<DownloadContext>& dctx)
+getInfoHashString(const std::shared_ptr<DownloadContext>& dctx)
+{
+  return getInfoHashString(dctx.get());
+}
+
+std::string
+getInfoHashString(DownloadContext* dctx)
 {
   return util::toHex(getTorrentAttrs(dctx)->infoHash);
 }
@@ -662,7 +675,7 @@ void computeFastSet
   }
   memcpy(tx+4, infoHash, 20);
   unsigned char x[20];
-  SharedHandle<MessageDigest> sha1 = MessageDigest::sha1();
+  std::shared_ptr<MessageDigest> sha1 = MessageDigest::sha1();
   message_digest::digest(x, sizeof(x), sha1, tx, 24);
   while(fastSet.size() < fastSetSize) {
     for(size_t i = 0; i < 5 && fastSet.size() < fastSetSize; ++i) {
@@ -890,9 +903,9 @@ void assertID
   }
 }
 
-SharedHandle<TorrentAttribute> parseMagnet(const std::string& magnet)
+std::unique_ptr<TorrentAttribute> parseMagnet(const std::string& magnet)
 {
-  SharedHandle<Dict> r = magnet::parse(magnet);
+  std::shared_ptr<Dict> r = magnet::parse(magnet);
   if(!r) {
     throw DL_ABORT_EX2("Bad BitTorrent Magnet URI.",
                        error_code::MAGNET_PARSE_ERROR);
@@ -902,7 +915,7 @@ SharedHandle<TorrentAttribute> parseMagnet(const std::string& magnet)
     throw DL_ABORT_EX2("Missing xt parameter in Magnet URI.",
                        error_code::MAGNET_PARSE_ERROR);
   }
-  SharedHandle<TorrentAttribute> attrs(new TorrentAttribute());
+  auto attrs = make_unique<TorrentAttribute>();
   std::string infoHash;
   for(List::ValueType::const_iterator xtiter = xts->begin(),
         eoi = xts->end(); xtiter != eoi && infoHash.empty(); ++xtiter) {
@@ -950,14 +963,13 @@ SharedHandle<TorrentAttribute> parseMagnet(const std::string& magnet)
 }
 
 void loadMagnet
-(const std::string& magnet, const SharedHandle<DownloadContext>& dctx)
+(const std::string& magnet, const std::shared_ptr<DownloadContext>& dctx)
 {
-  SharedHandle<TorrentAttribute> attrs = parseMagnet(magnet);
-  dctx->setAttribute(CTX_ATTR_BT, attrs);
+  dctx->setAttribute(CTX_ATTR_BT, parseMagnet(magnet));
 }
 
 std::string metadata2Torrent
-(const std::string& metadata, const SharedHandle<TorrentAttribute>& attrs)
+(const std::string& metadata, const TorrentAttribute* attrs)
 {
   std::string torrent = "d";
 
@@ -965,7 +977,7 @@ std::string metadata2Torrent
   for(std::vector<std::vector<std::string> >::const_iterator tierIter =
         attrs->announceList.begin(),
         eoi = attrs->announceList.end(); tierIter != eoi; ++tierIter) {
-    SharedHandle<List> tier = List::g();
+    std::shared_ptr<List> tier = List::g();
     for(std::vector<std::string>::const_iterator uriIter = (*tierIter).begin(),
           eoi2 = (*tierIter).end(); uriIter != eoi2; ++uriIter) {
       tier->append(String::g(*uriIter));
@@ -984,7 +996,7 @@ std::string metadata2Torrent
   return torrent;
 }
 
-std::string torrent2Magnet(const SharedHandle<TorrentAttribute>& attrs)
+std::string torrent2Magnet(const TorrentAttribute* attrs)
 {
   std::string uri = "magnet:?";
   if(!attrs->infoHash.empty()) {
@@ -1021,8 +1033,7 @@ int getCompactLength(int family)
 }
 
 void removeAnnounceUri
-(const SharedHandle<TorrentAttribute>& attrs,
- const std::vector<std::string>& uris)
+(TorrentAttribute* attrs, const std::vector<std::string>& uris)
 {
   if(uris.empty()) {
     return;
@@ -1049,8 +1060,7 @@ void removeAnnounceUri
 }
 
 void addAnnounceUri
-(const SharedHandle<TorrentAttribute>& attrs,
- const std::vector<std::string>& uris)
+(TorrentAttribute* attrs, const std::vector<std::string>& uris)
 {
   for(std::vector<std::string>::const_iterator i = uris.begin(),
         eoi = uris.end(); i != eoi; ++i) {
@@ -1061,8 +1071,7 @@ void addAnnounceUri
 }
 
 void adjustAnnounceUri
-(const SharedHandle<TorrentAttribute>& attrs,
- const SharedHandle<Option>& option)
+(TorrentAttribute* attrs, const std::shared_ptr<Option>& option)
 {
   std::vector<std::string> excludeUris;
   std::vector<std::string> addUris;
