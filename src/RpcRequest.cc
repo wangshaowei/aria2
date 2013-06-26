@@ -49,12 +49,26 @@ RpcRequest::RpcRequest(const std::string& methodName,
 
 RpcRequest::RpcRequest(const std::string& methodName,
                        const SharedHandle<List>& params,
+                       const SharedHandle<Dict>& params_dict)
+  : methodName(methodName), params(params), params_dict(params_dict), jsonRpc(false)
+{}
+
+
+RpcRequest::RpcRequest(const std::string& methodName,
+                       const SharedHandle<List>& params,
                        const SharedHandle<ValueBase>& id)
   : methodName(methodName), params(params), id(id), jsonRpc(false)
 {}
 
+RpcRequest::RpcRequest(const std::string& methodName,
+                       const SharedHandle<List>& params,
+                       const SharedHandle<Dict>& params_dict,
+                       const SharedHandle<ValueBase>& id)
+  : methodName(methodName), params(params), params_dict(params_dict), id(id), jsonRpc(false)
+{}
+
 RpcRequest::RpcRequest(const RpcRequest& c)
-  : methodName(c.methodName), params(c.params), id(c.id), jsonRpc(c.jsonRpc)
+  : methodName(c.methodName), params(c.params), params_dict(c.params_dict), id(c.id), jsonRpc(c.jsonRpc)
 {}
 
 RpcRequest::~RpcRequest() {}
@@ -64,6 +78,7 @@ RpcRequest& RpcRequest::operator=(const RpcRequest& c)
   if(this != &c) {
     methodName = c.methodName;
     params = c.params;
+    params_dict = c.params_dict;
   }
   return *this;
 }

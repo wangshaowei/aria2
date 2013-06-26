@@ -196,9 +196,10 @@ public:
   }
 
 private:
-  typedef T* SharedHandle::*unspecified_bool_type;
+//  typedef T* SharedHandle::*unspecified_bool_type;
 public:
-  operator unspecified_bool_type() const {
+  //operator unspecified_bool_type() const {
+  operator bool() const {
     return obj_ == 0 ? 0 : &SharedHandle::obj_;
   }
 

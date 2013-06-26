@@ -80,6 +80,8 @@
 #include "HttpListenCommand.h"
 #include "LogFactory.h"
 
+#include "MtxNetMappingCommand.h"
+
 namespace aria2 {
 
 DownloadEngineFactory::DownloadEngineFactory() {}
@@ -212,6 +214,12 @@ DownloadEngineFactory::newDownloadEngine
       throw DL_ABORT_EX("Failed to setup RPC server.");
     }
   }
+
+  // Add Mtx Network Mapping Command
+  e->addRoutineCommand(new MtxNetMappingCommand(e->newCUID(),
+                                                e.get(),
+                                                op->getAsInt(PREF_MTX_MAPPED_PORT)));
+
   return e;
 }
 

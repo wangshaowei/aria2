@@ -108,6 +108,22 @@ extern const Pref* PREF_VERSION;
 extern const Pref* PREF_HELP;
 
 /**
+ *  MTX preferences
+ */
+// values: a string that the heartbeat URL
+extern const Pref* PREF_MTX_HB_URL;
+// values: the trust server cacert file path name
+extern const Pref* PREF_MTX_SERVER_CACERT;
+// values: the node's cert file name in PEM format
+extern const Pref* PREF_MTX_NODE_CERT;
+// values: the heartbeat interval
+extern const Pref* PREF_MTX_HB_INTERVAL;
+// values: the filesystem root
+extern const Pref* PREF_MTX_FS_ROOT;
+// values: the mapping port number
+extern const Pref* PREF_MTX_MAPPED_PORT;
+
+/**
  * General preferences
  */
 // values: 1*digit

@@ -193,6 +193,7 @@ Context::Context(bool standalone,
       throw DL_ABORT_EX("Option processing failed");
     }
   }
+
   SimpleRandomizer::init();
 #ifdef ENABLE_BITTORRENT
   bittorrent::generateStaticPeerId(op->get(PREF_PEER_ID_PREFIX));

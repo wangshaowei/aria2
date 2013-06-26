@@ -33,6 +33,18 @@
  */
 /* copyright --> */
 
+#define TEXT_MTX_HB_URL																									\
+	_("  --mtx-hb-url                The MTX server heartbeat URL. ")
+#define TEXT_MTX_SERVER_CACERT                               					  \
+	_("  --mtx-server-cacert         The MTX server cacert. ")
+#define TEXT_MTX_NODE_CERT                                              \
+	_("  --mtx-node-cert             The MTX node cert. ")
+#define TEXT_MTX_HB_INTERVAL					                                  \
+	_("  --mtx-hb-interval           The Heartbeat interval in second. ")
+#define TEXT_MTX_FS_ROOT                                                          \
+	_("  --mtx-fs-root               The MTX filesystem root. ")
+#define TEXT_MTX_MAPPED_PORT									\
+	_("  --mtx-mapped-port            The mapped port for MTX node. ")
 #define TEXT_DIR                                                        \
   _(" -d, --dir=DIR                The directory to store the downloaded file.")
 #define TEXT_OUT                                                        \

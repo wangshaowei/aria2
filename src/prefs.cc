@@ -173,6 +173,19 @@ const Pref* PREF_VERSION = makePref("version");
 const Pref* PREF_HELP = makePref("help");
 
 /**
+ *  MTX preferences
+ */
+// values: a string that the heartbeat URL
+const Pref* PREF_MTX_HB_URL = makePref("mtx-hb-url");
+// values: the trust server cacert file path name
+const Pref* PREF_MTX_SERVER_CACERT = makePref("mtx-server-cacert");
+// values: the node's cert file name in PEM format
+const Pref* PREF_MTX_NODE_CERT = makePref("mtx-node-cert");
+const Pref* PREF_MTX_HB_INTERVAL = makePref("mtx-hb-interval");
+const Pref* PREF_MTX_FS_ROOT = makePref("mtx-fs-root");
+const Pref* PREF_MTX_MAPPED_PORT = makePref("mtx-mapped-port");
+
+/**
  * General preferences
  */
 // values: 1*digit

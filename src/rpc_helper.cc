@@ -88,16 +88,22 @@ RpcResponse processJsonRpcRequest(const Dict* jsondict, DownloadEngine* e)
     return createJsonRpcErrorResponse(-32600, "Invalid Request.", id);
   }
   SharedHandle<List> params;
+  SharedHandle<Dict> params_dict;
   const SharedHandle<ValueBase>& tempParams = jsondict->get("params");
   if(downcast<List>(tempParams)) {
     params = static_pointer_cast<List>(tempParams);
+    params_dict = Dict::g();
+  } else if (downcast<Dict>(tempParams)) {
+	params = List::g();
+	params_dict = static_pointer_cast<Dict>(tempParams);
   } else if(!tempParams) {
     params = List::g();
+    params_dict = Dict::g();
   } else {
     // TODO No support for Named params
     return createJsonRpcErrorResponse(-32602, "Invalid params.", id);
   }
-  rpc::RpcRequest req(methodName->s(), params, id);
+  rpc::RpcRequest req(methodName->s(), params, params_dict, id);
   req.jsonRpc = true;
   SharedHandle<rpc::RpcMethod> method;
   try {

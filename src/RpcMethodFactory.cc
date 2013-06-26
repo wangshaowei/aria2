@@ -37,6 +37,8 @@
 #include "OptionParser.h"
 #include "OptionHandler.h"
 
+#include "MtxPingRpcMethod.h"
+
 namespace aria2 {
 
 namespace rpc {
@@ -128,6 +130,8 @@ createMethod(const std::string& methodName)
     return SharedHandle<RpcMethod>(new GetGlobalStatRpcMethod());
   } else if(methodName == SystemMulticallRpcMethod::getMethodName()) {
     return SharedHandle<RpcMethod>(new SystemMulticallRpcMethod());
+  } else if (methodName == MtxPingRpcMethod::getMethodName()) {
+	return SharedHandle<RpcMethod>(new MtxPingRpcMethod());
   } else {
     return SharedHandle<RpcMethod>();
   }

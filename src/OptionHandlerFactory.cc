@@ -50,6 +50,57 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
   std::vector<OptionHandler*> handlers;
   static const std::string logLevels[] =
     { V_DEBUG, V_INFO, V_NOTICE, V_WARN, V_ERROR };
+
+  // MTX Options
+  {
+	  OptionHandler* op(new DefaultOptionHandler(PREF_MTX_HB_URL,
+			  	  	  	  	  	  	  	  	  	  	 TEXT_MTX_HB_URL,
+			  	  	  	  	  	  	  	  	  	  	 std::string("https://mtx-dev.oicp.net/heartbeat"),
+			  	  	  	  	  	  	  	  	  	  	 std::string("")));
+	  op->addTag(TAG_ADVANCED);
+	  handlers.push_back(op);
+  }
+  {
+	  OptionHandler* op(new DefaultOptionHandler(PREF_MTX_SERVER_CACERT,
+			  	  	  	  	  	  	  	  	  	  	 TEXT_MTX_SERVER_CACERT,
+			  	  	  	  	  	  	  	  	  	  	 std::string("/etc/server.crt"),
+			  	  	  	  	  	  	  	  	  	  	 std::string("")));
+	  op->addTag(TAG_ADVANCED);
+	  handlers.push_back(op);
+  }
+  {
+	  OptionHandler* op(new DefaultOptionHandler(PREF_MTX_NODE_CERT,
+			  	  	  	  	  	  	  	  	         TEXT_MTX_NODE_CERT,
+			  	  	  	  	  	  	  	  	         std::string("/etc/node.pem"),
+			  	  	  	  	  	  	  	  	         std::string("")));
+	  op->addTag(TAG_ADVANCED);
+	  handlers.push_back(op);
+  }
+  {
+	  OptionHandler* op(new NumberOptionHandler(PREF_MTX_HB_INTERVAL,
+			                                        TEXT_MTX_HB_INTERVAL,
+			                                        std::string("60"),
+			                                        10,300));
+	  op->addTag(TAG_ADVANCED);
+	  handlers.push_back(op);
+  }
+  {
+	  OptionHandler* op(new DefaultOptionHandler(PREF_MTX_FS_ROOT,
+			                                     TEXT_MTX_FS_ROOT,
+			                                     std::string("/mtxfs"),
+			                                     std::string("")));
+	  op->addTag(TAG_ADVANCED);
+	  handlers.push_back(op);
+  }
+  {
+	  OptionHandler* op(new NumberOptionHandler(PREF_MTX_MAPPED_PORT,
+			                                    TEXT_MTX_MAPPED_PORT,
+			                                    "-1",
+			                                    -1, 65535));
+	  op->addTag(TAG_ADVANCED);
+	  handlers.push_back(op);
+  }
+
   // General Options
   {
     OptionHandler* op(new BooleanOptionHandler
@@ -471,7 +522,8 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
     OptionHandler* op(new DefaultOptionHandler
                       (PREF_LOG,
                        TEXT_LOG,
-                       NO_DEFAULT_VALUE,
+                       std::string("-"), // default print to stdout
+                       //NO_DEFAULT_VALUE,
                        PATH_TO_FILE_STDOUT,
                        OptionHandler::REQ_ARG,
                        'l'));
