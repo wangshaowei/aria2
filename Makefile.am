@@ -1,4 +1,4 @@
-SUBDIRS =  po intl lib deps src doc test
+SUBDIRS =  po intl lib deps src test
 
 ACLOCAL_AMFLAGS = -I m4 --install
 RST2HTML = @RST2HTML@
