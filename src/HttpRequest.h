@@ -74,13 +74,13 @@ private:
   // If true, metalink content types are sent in Accept header field.
   bool acceptMetalink_;
 
-  std::shared_ptr<CookieStorage> cookieStorage_;
+  CookieStorage* cookieStorage_;
 
-  std::shared_ptr<AuthConfigFactory> authConfigFactory_;
+  AuthConfigFactory* authConfigFactory_;
 
   const Option* option_;
 
-  std::shared_ptr<AuthConfig> authConfig_;
+  std::unique_ptr<AuthConfig> authConfig_;
 
   std::shared_ptr<Request> proxyRequest_;
 
@@ -185,15 +185,12 @@ public:
     acceptMetalink_ = f;
   }
 
-  void setCookieStorage(const std::shared_ptr<CookieStorage>& cookieStorage);
+  void setCookieStorage(CookieStorage* cookieStorage);
 
-  const std::shared_ptr<CookieStorage>& getCookieStorage() const
-  {
-    return cookieStorage_;
-  }
+  CookieStorage* getCookieStorage() const;
 
-  void setAuthConfigFactory
-  (const std::shared_ptr<AuthConfigFactory>& factory, const Option* option);
+  void setAuthConfigFactory(AuthConfigFactory* factory);
+  void setOption(const Option* option);
 
   /*
    * To use proxy, pass proxy string to Request::setUri() and set it this
@@ -213,7 +210,7 @@ public:
 
   // Returns AuthConfig used in the last invocation of
   // createRequest().
-  const std::shared_ptr<AuthConfig>& getAuthConfig() const;
+  const std::unique_ptr<AuthConfig>& getAuthConfig() const;
 
   void setFileEntry(const std::shared_ptr<FileEntry>& fileEntry);
 

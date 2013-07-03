@@ -21,17 +21,17 @@ std::string readFile(const std::string& path);
 
 class CookieSorter {
 public:
-  bool operator()(const Cookie& lhs, const Cookie& rhs) const
+  bool operator()(const Cookie* lhs, const Cookie* rhs) const
   {
-    if(lhs.getDomain() == rhs.getDomain()) {
-      return lhs.getName() < rhs.getName();
+    if(lhs->getDomain() == rhs->getDomain()) {
+      return lhs->getName() < rhs->getName();
     } else {
-      return lhs.getDomain() < rhs.getDomain();
+      return lhs->getDomain() < rhs->getDomain();
     }
   }
 };
 
-Cookie createCookie
+std::unique_ptr<Cookie> createCookie
 (const std::string& name,
  const std::string& value,
  const std::string& domain,
@@ -39,7 +39,7 @@ Cookie createCookie
  const std::string& path,
  bool secure);
 
-Cookie createCookie
+std::unique_ptr<Cookie> createCookie
 (const std::string& name,
  const std::string& value,
  time_t expiryTime,
@@ -52,8 +52,7 @@ std::string fromHex(const std::string& s);
 
 #ifdef ENABLE_MESSAGE_DIGEST
 // Returns hex digest of contents of file denoted by filename.
-std::string fileHexDigest
-(const std::shared_ptr<MessageDigest>& ctx, const std::string& filename);
+std::string fileHexDigest(MessageDigest* ctx, const std::string& filename);
 #endif // ENABLE_MESSAGE_DIGEST
 
 WrDiskCacheEntry::DataCell* createDataCell(int64_t goff,
@@ -74,5 +73,18 @@ std::shared_ptr<RequestGroup> createRequestGroup(int32_t pieceLength,
 
 std::shared_ptr<DownloadResult> createDownloadResult
 (error_code::Value result, const std::string& uri);
+
+namespace {
+template<typename V, typename T>
+bool derefFind(const V& v, const T& t)
+{
+  for(auto i : v) {
+    if(*i == *t) {
+      return true;
+    }
+  }
+  return false;
+}
+} // namespace
 
 } // namespace aria2

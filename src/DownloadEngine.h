@@ -133,7 +133,7 @@ private:
 
   std::deque<std::unique_ptr<Command>> routineCommands_;
 
-  std::shared_ptr<CookieStorage> cookieStorage_;
+  std::unique_ptr<CookieStorage> cookieStorage_;
 
 #ifdef ENABLE_BITTORRENT
   std::shared_ptr<BtRegistry> btRegistry_;
@@ -147,7 +147,7 @@ private:
 
   std::shared_ptr<DNSCache> dnsCache_;
 
-  std::shared_ptr<AuthConfigFactory> authConfigFactory_;
+  std::unique_ptr<AuthConfigFactory> authConfigFactory_;
 
 #ifdef ENABLE_WEBSOCKET
   std::shared_ptr<rpc::WebSocketSessionMan> webSocketSessionMan_;
@@ -302,10 +302,7 @@ public:
    uint16_t port,
    const std::string& username);
 
-  const std::shared_ptr<CookieStorage>& getCookieStorage() const
-  {
-    return cookieStorage_;
-  }
+  const std::unique_ptr<CookieStorage>& getCookieStorage() const;
 
 #ifdef ENABLE_BITTORRENT
   const std::shared_ptr<BtRegistry>& getBtRegistry() const
@@ -334,12 +331,9 @@ public:
 
   void removeCachedIPAddress(const std::string& hostname, uint16_t port);
 
-  void setAuthConfigFactory(const std::shared_ptr<AuthConfigFactory>& factory);
+  void setAuthConfigFactory(std::unique_ptr<AuthConfigFactory> factory);
 
-  const std::shared_ptr<AuthConfigFactory>& getAuthConfigFactory() const
-  {
-    return authConfigFactory_;
-  }
+  const std::unique_ptr<AuthConfigFactory>& getAuthConfigFactory() const;
 
   void setRefreshInterval(int64_t interval);
 

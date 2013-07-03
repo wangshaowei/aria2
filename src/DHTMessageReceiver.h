@@ -47,6 +47,7 @@ class DHTMessage;
 class DHTConnection;
 class DHTMessageFactory;
 class DHTRoutingTable;
+class DHTUnknownMessage;
 
 class DHTMessageReceiver {
 private:
@@ -54,21 +55,19 @@ private:
 
   std::shared_ptr<DHTConnection> connection_;
 
-  std::shared_ptr<DHTMessageFactory> factory_;
+  DHTMessageFactory* factory_;
 
-  std::shared_ptr<DHTRoutingTable> routingTable_;
+  DHTRoutingTable* routingTable_;
 
-  std::shared_ptr<DHTMessage>
+  std::unique_ptr<DHTUnknownMessage>
   handleUnknownMessage(const unsigned char* data, size_t length,
                        const std::string& remoteAddr, uint16_t remotePort);
 
-  void onMessageReceived(const std::shared_ptr<DHTMessage>& message);
+  void onMessageReceived(DHTMessage* message);
 public:
   DHTMessageReceiver(const std::shared_ptr<DHTMessageTracker>& tracker);
 
-  ~DHTMessageReceiver();
-
-  std::shared_ptr<DHTMessage> receiveMessage
+  std::unique_ptr<DHTMessage> receiveMessage
   (const std::string& remoteAddr, uint16_t remotePort, unsigned char *data,
    size_t length);
 
@@ -86,9 +85,9 @@ public:
 
   void setConnection(const std::shared_ptr<DHTConnection>& connection);
 
-  void setMessageFactory(const std::shared_ptr<DHTMessageFactory>& factory);
+  void setMessageFactory(DHTMessageFactory* factory);
 
-  void setRoutingTable(const std::shared_ptr<DHTRoutingTable>& routingTable);
+  void setRoutingTable(DHTRoutingTable* routingTable);
 };
 
 } // namespace aria2

@@ -130,14 +130,14 @@ std::string createWebSocketServerKey(const std::string& clientKey)
   std::string src = clientKey;
   src += "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
   unsigned char digest[20];
-  message_digest::digest(digest, sizeof(digest), MessageDigest::sha1(),
+  message_digest::digest(digest, sizeof(digest), MessageDigest::sha1().get(),
                          src.c_str(), src.size());
   return base64::encode(&digest[0], &digest[sizeof(digest)]);
 }
 } // namespace
 
 namespace {
-int websocketHandshake(const std::shared_ptr<HttpHeader>& header)
+int websocketHandshake(const HttpHeader* header)
 {
   if(header->getMethod() != "GET" ||
      header->find(HttpHeader::SEC_WEBSOCKET_KEY).empty()) {
@@ -190,9 +190,7 @@ bool HttpServerCommand::execute()
       }
 #endif // ENABLE_SSL
 
-      std::shared_ptr<HttpHeader> header;
-      header = httpServer_->receiveRequest();
-      if(!header) {
+      if(!httpServer_->receiveRequest()) {
         updateWriteCheck();
         e_->addCommand(std::unique_ptr<Command>(this));
         return false;
@@ -209,10 +207,11 @@ bool HttpServerCommand::execute()
         e_->setNoWait(true);
         return true;
       }
+      auto& header = httpServer_->getRequestHeader();
       if(header->fieldContains(HttpHeader::UPGRADE, "websocket") &&
          header->fieldContains(HttpHeader::CONNECTION, "upgrade")) {
 #ifdef ENABLE_WEBSOCKET
-        int status = websocketHandshake(header);
+        int status = websocketHandshake(header.get());
         if(status == 101) {
           std::string serverKey =
             createWebSocketServerKey

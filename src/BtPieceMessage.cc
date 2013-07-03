@@ -60,6 +60,7 @@
 #include "WrDiskCache.h"
 #include "WrDiskCacheEntry.h"
 #include "DownloadFailureException.h"
+#include "BtRejectMessage.h"
 
 namespace aria2 {
 
@@ -86,16 +87,14 @@ void BtPieceMessage::setMsgPayload(const unsigned char* data)
   data_ = data;
 }
 
-BtPieceMessage* BtPieceMessage::create
+std::unique_ptr<BtPieceMessage> BtPieceMessage::create
 (const unsigned char* data, size_t dataLength)
 {
   bittorrent::assertPayloadLengthGreater(9, dataLength, NAME);
   bittorrent::assertID(ID, data, NAME);
-  BtPieceMessage* message(new BtPieceMessage());
-  message->setIndex(bittorrent::getIntParam(data, 1));
-  message->setBegin(bittorrent::getIntParam(data, 5));
-  message->setBlockLength(dataLength-9);
-  return message;
+  return make_unique<BtPieceMessage>(bittorrent::getIntParam(data, 1),
+                                     bittorrent::getIntParam(data, 5),
+                                     dataLength-9);
 }
 
 void BtPieceMessage::doReceivedAction()
@@ -103,11 +102,11 @@ void BtPieceMessage::doReceivedAction()
   if(isMetadataGetMode()) {
     return;
   }
-  RequestSlot slot = getBtMessageDispatcher()->getOutstandingRequest
+  auto slot = getBtMessageDispatcher()->getOutstandingRequest
     (index_, begin_, blockLength_);
   getPeer()->updateDownloadLength(blockLength_);
   downloadContext_->updateDownloadLength(blockLength_);
-  if(!RequestSlot::isNull(slot)) {
+  if(slot) {
     getPeer()->snubbing(false);
     std::shared_ptr<Piece> piece = getPieceStorage()->getPiece(index_);
     int64_t offset =
@@ -118,8 +117,8 @@ void BtPieceMessage::doReceivedAction()
                      begin_,
                      blockLength_,
                      static_cast<int64_t>(offset),
-                     static_cast<unsigned long>(slot.getBlockIndex())));
-    if(piece->hasBlock(slot.getBlockIndex())) {
+                     static_cast<unsigned long>(slot->getBlockIndex())));
+    if(piece->hasBlock(slot->getBlockIndex())) {
       A2_LOG_DEBUG("Already have this block.");
       return;
     }
@@ -134,7 +133,7 @@ void BtPieceMessage::doReceivedAction()
       getPieceStorage()->getDiskAdaptor()->writeData(data_+9, blockLength_,
                                                      offset);
     }
-    piece->completeBlock(slot.getBlockIndex());
+    piece->completeBlock(slot->getBlockIndex());
     A2_LOG_DEBUG(fmt(MSG_PIECE_BITFIELD, getCuid(),
                      util::toHex(piece->getBitfield(),
                                  piece->getBitfieldLength()).c_str()));
@@ -225,8 +224,8 @@ void BtPieceMessage::pushPieceData(int64_t offset, int32_t length) const
     unsigned char* dbuf = buf;
     buf.reset(0);
     getPeerConnection()->pushBytes(dbuf, length+MESSAGE_HEADER_LENGTH,
-                                   new PieceSendUpdate(getPeer(),
-                                                       MESSAGE_HEADER_LENGTH));
+                                   make_unique<PieceSendUpdate>
+                                   (getPeer(), MESSAGE_HEADER_LENGTH));
     // To avoid upload rate overflow, we update the length here at
     // once.
     downloadContext_->updateUploadLength(length);
@@ -305,10 +304,9 @@ void BtPieceMessage::onChokingEvent(const BtChokingEvent& event)
                      begin_,
                      blockLength_));
     if(getPeer()->isFastExtensionEnabled()) {
-      std::shared_ptr<BtMessage> rej =
-        getBtMessageFactory()->createRejectMessage
-        (index_, begin_, blockLength_);
-      getBtMessageDispatcher()->addMessageToQueue(rej);
+      getBtMessageDispatcher()->addMessageToQueue
+        (getBtMessageFactory()->createRejectMessage
+         (index_, begin_, blockLength_));
     }
     setInvalidate(true);
   }
@@ -327,10 +325,9 @@ void BtPieceMessage::onCancelSendingPieceEvent
                      begin_,
                      blockLength_));
     if(getPeer()->isFastExtensionEnabled()) {
-      std::shared_ptr<BtMessage> rej =
-        getBtMessageFactory()->createRejectMessage
-        (index_, begin_, blockLength_);
-      getBtMessageDispatcher()->addMessageToQueue(rej);
+      getBtMessageDispatcher()->addMessageToQueue
+        (getBtMessageFactory()->createRejectMessage
+         (index_, begin_, blockLength_));
     }
     setInvalidate(true);
   }

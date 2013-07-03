@@ -48,7 +48,7 @@ BtInterestedMessage::BtInterestedMessage()
 
 BtInterestedMessage::~BtInterestedMessage() {}
 
-BtInterestedMessage* BtInterestedMessage::create
+std::unique_ptr<BtInterestedMessage> BtInterestedMessage::create
 (const unsigned char* data, size_t dataLength)
 {
   return ZeroBtMessage::create<BtInterestedMessage>(data, dataLength);
@@ -84,9 +84,9 @@ struct ThisProgressUpdate : public ProgressUpdate {
 };
 } // namespace
 
-ProgressUpdate* BtInterestedMessage::getProgressUpdate()
+std::unique_ptr<ProgressUpdate> BtInterestedMessage::getProgressUpdate()
 {
-  return new ThisProgressUpdate(getPeer());
+  return make_unique<ThisProgressUpdate>(getPeer());
 }
 
 void BtInterestedMessage::setPeerStorage(PeerStorage* peerStorage)

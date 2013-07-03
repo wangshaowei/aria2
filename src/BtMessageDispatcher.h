@@ -51,10 +51,7 @@ class BtMessageDispatcher {
 public:
   virtual ~BtMessageDispatcher() {}
 
-  virtual void addMessageToQueue(const std::shared_ptr<BtMessage>& btMessage) = 0;
-
-  virtual void
-  addMessageToQueue(const std::vector<std::shared_ptr<BtMessage> >& btMessages) =0;
+  virtual void addMessageToQueue(std::unique_ptr<BtMessage> btMessage) = 0;
 
   virtual void sendMessages() = 0;
 
@@ -79,12 +76,12 @@ public:
 
   virtual bool isOutstandingRequest(size_t index, size_t blockIndex) = 0;
 
-  virtual RequestSlot getOutstandingRequest
+  virtual const RequestSlot* getOutstandingRequest
   (size_t index, int32_t begin, int32_t length) = 0;
 
-  virtual void removeOutstandingRequest(const RequestSlot& slot) = 0;
+  virtual void removeOutstandingRequest(const RequestSlot* slot) = 0;
 
-  virtual void addOutstandingRequest(const RequestSlot& slot) = 0;
+  virtual void addOutstandingRequest(std::unique_ptr<RequestSlot> slot) = 0;
 
   virtual size_t countOutstandingUpload() = 0;
 };

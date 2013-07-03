@@ -57,13 +57,16 @@ namespace aria2 {
 
 const std::string HttpRequest::USER_AGENT("aria2");
 
-HttpRequest::HttpRequest():contentEncodingEnabled_(true),
-                           userAgent_(USER_AGENT),
-                           acceptMetalink_(false),
-                           option_(0),
-                           noCache_(true),
-                           acceptGzip_(false),
-                           endOffsetOverride_(0)
+HttpRequest::HttpRequest()
+  : contentEncodingEnabled_(true),
+    userAgent_(USER_AGENT),
+    acceptMetalink_(false),
+    cookieStorage_(0),
+    authConfigFactory_(0),
+    option_(0),
+    noCache_(true),
+    acceptGzip_(false),
+    endOffsetOverride_(0)
 {}
 
 HttpRequest::~HttpRequest() {}
@@ -231,13 +234,11 @@ std::string HttpRequest::createRequest()
     std::string cookiesValue;
     std::string path = getDir();
     path += getFile();
-    std::vector<Cookie> cookies =
-      cookieStorage_->criteriaFind(getHost(), path,
-                                   Time().getTime(),
-                                   getProtocol() == "https");
-    for(std::vector<Cookie>::const_iterator itr = cookies.begin(),
-          eoi = cookies.end(); itr != eoi; ++itr) {
-      cookiesValue += (*itr).toString();
+    auto cookies = cookieStorage_->criteriaFind(getHost(), path,
+                                                Time().getTime(),
+                                                getProtocol() == "https");
+    for(auto c : cookies) {
+      cookiesValue += c->toString();
       cookiesValue += ";";
     }
     if(!cookiesValue.empty()) {
@@ -327,16 +328,23 @@ void HttpRequest::clearHeader()
   headers_.clear();
 }
 
-void HttpRequest::setCookieStorage
-(const std::shared_ptr<CookieStorage>& cookieStorage)
+void HttpRequest::setCookieStorage(CookieStorage* cookieStorage)
 {
   cookieStorage_ = cookieStorage;
 }
 
-void HttpRequest::setAuthConfigFactory
-(const std::shared_ptr<AuthConfigFactory>& factory, const Option* option)
+CookieStorage* HttpRequest::getCookieStorage() const
+{
+  return cookieStorage_;
+}
+
+void HttpRequest::setAuthConfigFactory(AuthConfigFactory* factory)
 {
   authConfigFactory_ = factory;
+}
+
+void HttpRequest::setOption(const Option* option)
+{
   option_ = option;
 }
 
@@ -355,7 +363,7 @@ bool HttpRequest::authenticationUsed() const
   return authConfig_.get();
 }
 
-const std::shared_ptr<AuthConfig>& HttpRequest::getAuthConfig() const
+const std::unique_ptr<AuthConfig>& HttpRequest::getAuthConfig() const
 {
   return authConfig_;
 }

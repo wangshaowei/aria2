@@ -128,7 +128,7 @@ Session* sessionNew(const KeyVals& options, const SessionConfig& config)
     if(config.keepRunning) {
       e->getRequestGroupMan()->setKeepRunning(true);
       // Add command to make aria2 keep event polling
-      e->addCommand(new KeepRunningCommand(e->newCUID(), e.get()));
+      e->addCommand(make_unique<KeepRunningCommand>(e->newCUID(), e.get()));
     }
     if(config.downloadEventCallback) {
       std::shared_ptr<DownloadEventListener> listener
@@ -737,9 +737,8 @@ struct RequestGroupDH : public DownloadHandle {
   {
 #ifdef ENABLE_BITTORRENT
     if(group->getDownloadContext()->hasAttribute(CTX_ATTR_BT)) {
-      std::shared_ptr<TorrentAttribute> torrentAttrs =
-        bittorrent::getTorrentAttrs(group->getDownloadContext());
-      return torrentAttrs->infoHash;
+      return bittorrent::getTorrentAttrs(group->getDownloadContext())
+        ->infoHash;
     }
 #endif // ENABLE_BITTORRENT
     return A2STR::NIL;
@@ -804,7 +803,7 @@ struct RequestGroupDH : public DownloadHandle {
     BtMetaInfoData res;
 #ifdef ENABLE_BITTORRENT
     if(group->getDownloadContext()->hasAttribute(CTX_ATTR_BT)) {
-      std::shared_ptr<TorrentAttribute> torrentAttrs =
+      auto torrentAttrs =
         bittorrent::getTorrentAttrs(group->getDownloadContext());
       res.announceList = torrentAttrs->announceList;
       res.comment = torrentAttrs->comment;

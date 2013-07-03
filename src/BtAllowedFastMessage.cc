@@ -45,7 +45,7 @@ const char BtAllowedFastMessage::NAME[] = "allowed fast";
 BtAllowedFastMessage::BtAllowedFastMessage(size_t index):
   IndexBtMessage(ID, NAME, index) {}
 
-BtAllowedFastMessage* BtAllowedFastMessage::create
+std::unique_ptr<BtAllowedFastMessage> BtAllowedFastMessage::create
 (const unsigned char* data, size_t dataLength)
 {
   return IndexBtMessage::create<BtAllowedFastMessage>(data, dataLength);
@@ -78,9 +78,9 @@ struct ThisProgressUpdate : public ProgressUpdate {
 };
 } // namespace
 
-ProgressUpdate* BtAllowedFastMessage::getProgressUpdate()
+std::unique_ptr<ProgressUpdate> BtAllowedFastMessage::getProgressUpdate()
 {
-  return new ThisProgressUpdate(getPeer(), getIndex());
+  return make_unique<ThisProgressUpdate>(getPeer(), getIndex());
 }
 
 } // namespace aria2

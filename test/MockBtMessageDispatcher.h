@@ -12,18 +12,12 @@ namespace aria2 {
 
 class MockBtMessageDispatcher : public BtMessageDispatcher {
 public:
-  std::deque<std::shared_ptr<BtMessage> > messageQueue;
+  std::deque<std::unique_ptr<BtMessage>> messageQueue;
 
   virtual ~MockBtMessageDispatcher() {}
 
-  virtual void addMessageToQueue(const std::shared_ptr<BtMessage>& btMessage) {
-    messageQueue.push_back(btMessage);
-  }
-
-  virtual void addMessageToQueue
-  (const std::vector<std::shared_ptr<BtMessage> >& btMessages)
-  {
-    std::copy(btMessages.begin(), btMessages.end(), back_inserter(messageQueue));
+  virtual void addMessageToQueue(std::unique_ptr<BtMessage> btMessage) {
+    messageQueue.push_back(std::move(btMessage));
   }
 
   virtual void sendMessages() {}
@@ -57,14 +51,14 @@ public:
     return false;
   }
 
-  virtual RequestSlot getOutstandingRequest
+  virtual const RequestSlot* getOutstandingRequest
   (size_t index, int32_t begin, int32_t length) {
-    return RequestSlot::nullSlot;
+    return nullptr;
   }
 
-  virtual void removeOutstandingRequest(const RequestSlot& slot) {}
+  virtual void removeOutstandingRequest(const RequestSlot* slot) {}
 
-  virtual void addOutstandingRequest(const RequestSlot& slot) {}
+  virtual void addOutstandingRequest(std::unique_ptr<RequestSlot> slot) {}
 
   virtual size_t countOutstandingUpload()
   {

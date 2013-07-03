@@ -5,37 +5,46 @@
 
 namespace aria2 {
 
+struct MockExtensionMessageEventCheck {
+  MockExtensionMessageEventCheck() : doReceivedActionCalled{false}
+  {}
+  bool doReceivedActionCalled;
+};
+
 class MockExtensionMessage:public ExtensionMessage {
 public:
   std::string extensionName_;
   uint8_t extensionMessageID_;
   std::string data_;
-  bool doReceivedActionCalled_;
-public:
+  MockExtensionMessageEventCheck* evcheck_;
+
   MockExtensionMessage(const std::string& extensionName,
                        uint8_t extensionMessageID,
                        const unsigned char* data,
-                       size_t length):extensionName_(extensionName),
-                                      extensionMessageID_(extensionMessageID),
-                                      data_(&data[0], &data[length]),
-                                      doReceivedActionCalled_(false) {}
+                       size_t length,
+                       MockExtensionMessageEventCheck* evcheck)
+    : extensionName_{extensionName},
+      extensionMessageID_{extensionMessageID},
+      data_{&data[0], &data[length]},
+      evcheck_{evcheck}
+  {}
 
   MockExtensionMessage(const std::string& extensionName,
                        uint8_t extensionMessageID,
-                       const std::string& data):
-    extensionName_(extensionName),
-    extensionMessageID_(extensionMessageID),
-    data_(data),
-    doReceivedActionCalled_(false) {}
-
-  virtual ~MockExtensionMessage() {}
+                       const std::string& data,
+                       MockExtensionMessageEventCheck* evcheck)
+    : extensionName_{extensionName},
+      extensionMessageID_{extensionMessageID},
+      data_{data},
+      evcheck_{evcheck}
+  {}
 
   virtual std::string getPayload()
   {
     return data_;
   }
 
-  virtual uint8_t getExtensionMessageID()
+  virtual uint8_t getExtensionMessageID() const
   {
     return extensionMessageID_;
   }
@@ -52,7 +61,9 @@ public:
 
   virtual void doReceivedAction()
   {
-    doReceivedActionCalled_ = true;
+    if(evcheck_) {
+      evcheck_->doReceivedActionCalled = true;
+    }
   }
 };
 

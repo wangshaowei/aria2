@@ -1506,7 +1506,7 @@ std::vector<std::pair<size_t, std::string> > createIndexPaths(std::istream& i)
 namespace {
 void generateRandomDataRandom(unsigned char* data, size_t length)
 {
-  SimpleRandomizer* rd = SimpleRandomizer::getInstance();
+  const auto& rd = SimpleRandomizer::getInstance();
   for(size_t i = 0; i < length; ++i) {
     data[i] = static_cast<unsigned long>(rd->getRandomNumber(256));
   }
@@ -1602,7 +1602,8 @@ void generateRandomKey(unsigned char* key)
 #ifdef ENABLE_MESSAGE_DIGEST
   unsigned char bytes[40];
   generateRandomData(bytes, sizeof(bytes));
-  message_digest::digest(key, 20, MessageDigest::sha1(), bytes, sizeof(bytes));
+  message_digest::digest(key, 20, MessageDigest::sha1().get(), bytes,
+                         sizeof(bytes));
 #else // !ENABLE_MESSAGE_DIGEST
   generateRandomData(key, 20);
 #endif // !ENABLE_MESSAGE_DIGEST

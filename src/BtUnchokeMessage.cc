@@ -42,7 +42,7 @@ const char BtUnchokeMessage::NAME[] = "unchoke";
 
 BtUnchokeMessage::BtUnchokeMessage():ZeroBtMessage(ID, NAME) {}
 
-BtUnchokeMessage* BtUnchokeMessage::create
+std::unique_ptr<BtUnchokeMessage> BtUnchokeMessage::create
 (const unsigned char* data, size_t dataLength)
 {
   return ZeroBtMessage::create<BtUnchokeMessage>(data, dataLength);
@@ -75,9 +75,9 @@ struct ThisProgressUpdate : public ProgressUpdate {
 };
 } // namespace
 
-ProgressUpdate* BtUnchokeMessage::getProgressUpdate()
+std::unique_ptr<ProgressUpdate> BtUnchokeMessage::getProgressUpdate()
 {
-  return new ThisProgressUpdate(getPeer());
+  return make_unique<ThisProgressUpdate>(getPeer());
 }
 
 } // namespace aria2

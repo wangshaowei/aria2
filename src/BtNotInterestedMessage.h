@@ -53,14 +53,14 @@ public:
 
   static const char NAME[];
 
-  static BtNotInterestedMessage* create
+  static std::unique_ptr<BtNotInterestedMessage> create
   (const unsigned char* data, size_t dataLength);
 
   virtual void doReceivedAction();
 
   virtual bool sendPredicate() const;
 
-  virtual ProgressUpdate* getProgressUpdate();
+  virtual std::unique_ptr<ProgressUpdate> getProgressUpdate();
 
   void setPeerStorage(PeerStorage* peerStorage);
 };
