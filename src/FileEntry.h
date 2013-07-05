@@ -179,7 +179,7 @@ public:
   // are not be usable because maxConnectionPerServer_ limit, then
   // reuse used URIs and do selection again.
   std::shared_ptr<Request> getRequest
-  (const std::shared_ptr<URISelector>& selector,
+  (URISelector* selector,
    bool uriReuse,
    const std::vector<std::pair<size_t, std::string> >& usedHosts,
    const std::string& referer = A2STR::NIL,
@@ -287,7 +287,7 @@ std::shared_ptr<FileEntry> getFirstRequestedFileEntry
       return *first;
     }
   }
-  return std::shared_ptr<FileEntry>();
+  return nullptr;
 }
 
 // Counts the number of files selected in the given iterator range

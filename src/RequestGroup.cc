@@ -136,7 +136,7 @@ RequestGroup::RequestGroup(const std::shared_ptr<GroupId>& gid,
     forceHaltRequested_(false),
     haltReason_(RequestGroup::NONE),
     pauseRequested_(false),
-    uriSelector_(new InorderURISelector()),
+    uriSelector_(make_unique<InorderURISelector>()),
     lastModifiedTime_(Time::null()),
     fileNotFoundCount_(0),
     timeout_(option->getAsInt(PREF_TIMEOUT)),
@@ -596,9 +596,7 @@ void RequestGroup::initPieceStorage()
         // integrated downloads. Currently multi-file integrated
         // download is not supported.
         A2_LOG_DEBUG("Using LongestSequencePieceSelector");
-        std::shared_ptr<PieceSelector> longestPieceSelector
-          (new LongestSequencePieceSelector());
-        ps->setPieceSelector(longestPieceSelector);
+        ps->setPieceSelector(make_unique<LongestSequencePieceSelector>());
       }
       if(option_->defined(PREF_BT_PRIORITIZE_PIECE)) {
         std::vector<size_t> result;
@@ -607,12 +605,12 @@ void RequestGroup::initPieceStorage()
            downloadContext_->getFileEntries(),
            downloadContext_->getPieceLength());
         if(!result.empty()) {
-          std::random_shuffle(result.begin(), result.end(),
+          std::random_shuffle(std::begin(result), std::end(result),
                               *SimpleRandomizer::getInstance());
-          std::shared_ptr<PriorityPieceSelector> priSelector
-            (new PriorityPieceSelector(ps->getPieceSelector()));
-          priSelector->setPriorityPiece(result.begin(), result.end());
-          ps->setPieceSelector(priSelector);
+          auto priSelector = make_unique<PriorityPieceSelector>
+            (ps->popPieceSelector());
+          priSelector->setPriorityPiece(std::begin(result), std::end(result));
+          ps->setPieceSelector(std::move(priSelector));
         }
       }
     }
@@ -1212,9 +1210,9 @@ void RequestGroup::reportDownloadFinished()
 #endif // ENABLE_BITTORRENT
 }
 
-void RequestGroup::setURISelector(const std::shared_ptr<URISelector>& uriSelector)
+void RequestGroup::setURISelector(std::unique_ptr<URISelector> uriSelector)
 {
-  uriSelector_ = uriSelector;
+  uriSelector_ = std::move(uriSelector);
 }
 
 void RequestGroup::applyLastModifiedTimeToLocalFiles()

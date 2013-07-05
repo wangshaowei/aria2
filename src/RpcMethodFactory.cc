@@ -133,7 +133,7 @@ createMethod(const std::string& methodName)
   } else if (methodName == MtxPingRpcMethod::getMethodName()) {
 	return std::shared_ptr<RpcMethod>(new MtxPingRpcMethod());
   } else {
-    return std::shared_ptr<RpcMethod>();
+    return nullptr;
   }
 }
 } // namespace

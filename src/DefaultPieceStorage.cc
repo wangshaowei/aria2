@@ -83,17 +83,20 @@ DefaultPieceStorage::DefaultPieceStorage
    endGamePieceNum_(END_GAME_PIECE_NUM),
    option_(option),
    pieceStatMan_(new PieceStatMan(downloadContext->getNumPieces(), true)),
-   pieceSelector_(new RarestPieceSelector(pieceStatMan_)),
+   pieceSelector_(make_unique<RarestPieceSelector>(pieceStatMan_)),
    wrDiskCache_(0)
 {
   const std::string& pieceSelectorOpt =
     option_->get(PREF_STREAM_PIECE_SELECTOR);
   if(pieceSelectorOpt.empty() || pieceSelectorOpt == A2_V_DEFAULT) {
-    streamPieceSelector_.reset(new DefaultStreamPieceSelector(bitfieldMan_));
+    streamPieceSelector_ = make_unique<DefaultStreamPieceSelector>
+      (bitfieldMan_);
   } else if(pieceSelectorOpt == V_INORDER) {
-    streamPieceSelector_.reset(new InorderStreamPieceSelector(bitfieldMan_));
+    streamPieceSelector_ = make_unique<InorderStreamPieceSelector>
+      (bitfieldMan_);
   } else if(pieceSelectorOpt == A2_V_GEOM) {
-    streamPieceSelector_.reset(new GeomStreamPieceSelector(bitfieldMan_, 1.5));
+    streamPieceSelector_ = make_unique<GeomStreamPieceSelector>
+      (bitfieldMan_, 1.5);
   }
 }
 
@@ -185,12 +188,12 @@ void DefaultPieceStorage::getMissingPiece
  cuid_t cuid)
 {
   const size_t mislen = bitfieldMan_->getBitfieldLength();
-  array_ptr<unsigned char> misbitfield(new unsigned char[mislen]);
+  auto misbitfield = make_unique<unsigned char[]>(mislen);
   size_t blocks = bitfieldMan_->countBlock();
   size_t misBlock = 0;
   if(isEndGame()) {
     bool r = bitfieldMan_->getAllMissingIndexes
-      (misbitfield, mislen, bitfield, length);
+      (misbitfield.get(), mislen, bitfield, length);
     if(!r) {
       return;
     }
@@ -214,15 +217,15 @@ void DefaultPieceStorage::getMissingPiece
     }
   } else {
     bool r = bitfieldMan_->getAllMissingUnusedIndexes
-      (misbitfield, mislen, bitfield, length);
+      (misbitfield.get(), mislen, bitfield, length);
     if(!r) {
       return;
     }
     while(misBlock < minMissingBlocks) {
       size_t index;
-      if(pieceSelector_->select(index, misbitfield, blocks)) {
+      if(pieceSelector_->select(index, misbitfield.get(), blocks)) {
         pieces.push_back(checkOutPiece(index, cuid));
-        bitfield::flipBit(misbitfield, blocks, index);
+        bitfield::flipBit(misbitfield.get(), blocks, index);
         misBlock += pieces.back()->countMissingBlock();
       } else {
         break;
@@ -325,7 +328,7 @@ DefaultPieceStorage::getMissingPiece
   std::vector<std::shared_ptr<Piece> > pieces;
   getMissingPiece(pieces, 1, peer, cuid);
   if(pieces.empty()) {
-    return std::shared_ptr<Piece>();
+    return nullptr;
   } else {
     return pieces.front();
   }
@@ -339,7 +342,7 @@ std::shared_ptr<Piece> DefaultPieceStorage::getMissingPiece
   std::vector<std::shared_ptr<Piece> > pieces;
   getMissingPiece(pieces, 1, peer, excludedIndexes, cuid);
   if(pieces.empty()) {
-    return std::shared_ptr<Piece>();
+    return nullptr;
   } else {
     return pieces.front();
   }
@@ -352,7 +355,7 @@ std::shared_ptr<Piece> DefaultPieceStorage::getMissingFastPiece
   std::vector<std::shared_ptr<Piece> > pieces;
   getMissingFastPiece(pieces, 1, peer, cuid);
   if(pieces.empty()) {
-    return std::shared_ptr<Piece>();
+    return nullptr;
   } else {
     return pieces.front();
   }
@@ -366,7 +369,7 @@ std::shared_ptr<Piece> DefaultPieceStorage::getMissingFastPiece
   std::vector<std::shared_ptr<Piece> > pieces;
   getMissingFastPiece(pieces, 1, peer, excludedIndexes, cuid);
   if(pieces.empty()) {
-    return std::shared_ptr<Piece>();
+    return nullptr;
   } else {
     return pieces.front();
   }
@@ -391,7 +394,7 @@ std::shared_ptr<Piece> DefaultPieceStorage::getMissingPiece
      (index, minSplitSize, ignoreBitfield, length)) {
     return checkOutPiece(index, cuid);
   } else {
-    return std::shared_ptr<Piece>();
+    return nullptr;
   }
 }
 
@@ -400,7 +403,7 @@ std::shared_ptr<Piece> DefaultPieceStorage::getMissingPiece
  cuid_t cuid)
 {
   if(hasPiece(index) || isPieceUsed(index)) {
-    return std::shared_ptr<Piece>();
+    return nullptr;
   } else {
     return checkOutPiece(index, cuid);
   }
@@ -864,6 +867,17 @@ size_t DefaultPieceStorage::getNextUsedIndex(size_t index)
 void DefaultPieceStorage::onDownloadIncomplete()
 {
   streamPieceSelector_->onBitfieldInit();
+}
+
+void DefaultPieceStorage::setPieceSelector
+(std::unique_ptr<PieceSelector> pieceSelector)
+{
+  pieceSelector_ = std::move(pieceSelector);
+}
+
+std::unique_ptr<PieceSelector> DefaultPieceStorage::popPieceSelector()
+{
+  return std::move(pieceSelector_);
 }
 
 } // namespace aria2

@@ -68,10 +68,8 @@
 namespace aria2 {
 
 HttpResponse::HttpResponse()
-  : cuid_(0)
+  : cuid_{0}
 {}
-
-HttpResponse::~HttpResponse() {}
 
 void HttpResponse::validateResponse() const
 {
@@ -191,17 +189,17 @@ const std::string& HttpResponse::getTransferEncoding() const
   return httpHeader_->find(HttpHeader::TRANSFER_ENCODING);
 }
 
-std::shared_ptr<StreamFilter> HttpResponse::getTransferEncodingStreamFilter() const
+std::unique_ptr<StreamFilter>
+HttpResponse::getTransferEncodingStreamFilter() const
 {
-  std::shared_ptr<StreamFilter> filter;
   // TODO Transfer-Encoding header field can contains multiple tokens. We should
   // parse the field and retrieve each token.
   if(isTransferEncodingSpecified()) {
     if(util::strieq(getTransferEncoding(), "chunked")) {
-      filter.reset(new ChunkedDecodingStreamFilter());
+      return make_unique<ChunkedDecodingStreamFilter>();
     }
   }
-  return filter;
+  return nullptr;
 }
 
 bool HttpResponse::isContentEncodingSpecified() const
@@ -214,16 +212,16 @@ const std::string& HttpResponse::getContentEncoding() const
   return httpHeader_->find(HttpHeader::CONTENT_ENCODING);
 }
 
-std::shared_ptr<StreamFilter> HttpResponse::getContentEncodingStreamFilter() const
+std::unique_ptr<StreamFilter>
+HttpResponse::getContentEncodingStreamFilter() const
 {
-  std::shared_ptr<StreamFilter> filter;
 #ifdef HAVE_ZLIB
   if(util::strieq(getContentEncoding(), "gzip") ||
      util::strieq(getContentEncoding(), "deflate")) {
-    filter.reset(new GZipDecodingStreamFilter());
+    return make_unique<GZipDecodingStreamFilter>();
   }
 #endif // HAVE_ZLIB
-  return filter;
+  return nullptr;
 }
 
 int64_t HttpResponse::getContentLength() const
@@ -266,9 +264,9 @@ const std::unique_ptr<HttpHeader>& HttpResponse::getHttpHeader() const
   return httpHeader_;
 }
 
-void HttpResponse::setHttpRequest(const std::shared_ptr<HttpRequest>& httpRequest)
+void HttpResponse::setHttpRequest(std::unique_ptr<HttpRequest> httpRequest)
 {
-  httpRequest_ = httpRequest;
+  httpRequest_ = std::move(httpRequest);
 }
 
 int HttpResponse::getStatusCode() const
